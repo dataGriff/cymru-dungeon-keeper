@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="450" height="2850" viewBox="0 0 450 2850">
+  
+  <defs>
+    <style>@import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&amp;family=Metamorphous&amp;family=VT323&amp;display=swap');</style>
+    <radialGradient id="glow" cx="50%" cy="62%" r="55%">
+      <stop offset="0%" stop-color="#5a1a24"/>
+      <stop offset="45%" stop-color="#1c1026"/>
+      <stop offset="100%" stop-color="#07050c"/>
+    </radialGradient>
+    <linearGradient id="floor" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#2b2234" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#2b2234"/>
+    </linearGradient>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0.2 0 0 0 0 0.15 0 0 0 0 0.25 0 0 0 0.18 0"/></filter>
+    <filter id="blur"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+  <rect width="450" height="2850" fill="#120d1c"/>
+  <rect width="450" height="2850" filter="url(#grain)"/>
+  <rect x="0" y="0" width="450" height="36" fill="#ff7a1f"/>
+  <rect x="0" y="2814" width="450" height="36" fill="#ff7a1f"/>
+  <text transform="translate(279 1425) rotate(-90)" text-anchor="middle" font-family="'Metamorphous', 'Palatino Linotype', Georgia, serif" font-size="150" fill="#f1e9d8">Steward of Annwn</text>
+  <g transform="translate(189 2565)"><rect x="-9" y="69" width="9" height="18" fill="#f4f1ea"/><rect x="0" y="78" width="72" height="36" fill="#f4f1ea"/><rect x="9" y="105" width="54" height="9" fill="#cfc9bf"/><rect x="54" y="60" width="36" height="36" fill="#f4f1ea"/><rect x="54" y="51" width="9" height="18" fill="#d8303a"/><rect x="72" y="51" width="9" height="18" fill="#d8303a"/><rect x="72" y="69" width="9" height="9" fill="#d8303a"/><rect x="81" y="87" width="9" height="9" fill="#0b0a12"/><rect x="0" y="114" width="9" height="27" fill="#f4f1ea"/><rect x="18" y="114" width="9" height="27" fill="#cfc9bf"/><rect x="45" y="114" width="9" height="27" fill="#f4f1ea"/><rect x="63" y="114" width="9" height="27" fill="#cfc9bf"/></g>
+  <text transform="translate(225 171) rotate(-90)" text-anchor="middle" font-family="'VT323', 'Courier New', monospace" font-size="42.00000000000001" fill="#b9b0a0">HUNGOVERCODERS</text>
+</svg>

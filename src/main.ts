@@ -14,6 +14,7 @@ import { createLog } from './ui/log';
 import { createManual } from './ui/manual';
 import { createOverlay } from './ui/overlay';
 import { SPEEDS, TOOL_KEYS, TOOL_ROOM, type Tool, createToolbar, isTrapTool } from './ui/toolbar';
+import { createTitleScreen } from './ui/title';
 import { createTooltip } from './ui/tooltip';
 
 /** Press-and-hold this long on touch to get the right-click action. */
@@ -284,13 +285,22 @@ function main(): void {
     }
   });
 
+  // ---------- title ----------
+  const titleScreen = createTitleScreen(`${import.meta.env.BASE_URL}box-front.png`);
+  app.append(titleScreen.root);
+  let started = false;
+  void titleScreen.wait().then(() => {
+    started = true;
+    last = performance.now();
+  });
+
   // ---------- loop ----------
   let last = performance.now();
   let lastStatus = state.status;
   const frame = (now: number): void => {
     const elapsed = (now - last) / 1000;
     last = now;
-    const alpha = paused ? Math.min(1, clock.acc / TICK) : advance(state, clock, elapsed, speed);
+    const alpha = paused || !started ? Math.min(1, clock.acc / TICK) : advance(state, clock, elapsed, speed);
     audio.react(takeEvents(state), (_id, x, y) => {
       let best = Infinity;
       for (const e of state.entities) if (isHero(e)) best = Math.min(best, Math.hypot(e.x - x, e.y - y));

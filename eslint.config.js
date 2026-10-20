@@ -4,7 +4,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'node_modules/**'] },
+  { ignores: ['dist/**', 'node_modules/**', '.claude/**', '**/.worktrees/**', 'coverage/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -13,7 +13,7 @@ export default tseslint.config(
   },
   {
     files: ['src/**/*.ts'],
-    languageOptions: { globals: { ...globals.browser } },
+    languageOptions: { globals: { ...globals.browser }, parserOptions: { tsconfigRootDir: import.meta.dirname } },
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },

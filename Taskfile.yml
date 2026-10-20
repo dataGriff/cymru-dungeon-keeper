@@ -34,6 +34,11 @@ tasks:
     sources: [art/figures.json, scripts/build-sprites.mjs]
     generates: [public/sprites.png, public/sprites.json]
 
+  box:
+    desc: Render the box front, back, spine, 3D mock (docs/box) and public/box-front.svg
+    cmds:
+      - node scripts/build-box.mjs
+
   bench:
     desc: Performance budgets (pathfinding) without coverage instrumentation
     deps: [install]
