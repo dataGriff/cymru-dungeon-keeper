@@ -1,4 +1,4 @@
-import { BESTIARY, HERO_DROP, type BeastKind } from '../data/bestiary';
+import { BESTIARY, BESTIARY_ORDER, HERO_DROP, TRADES, type BeastKind, type TradeKind, WARD_SECONDS } from '../data/bestiary';
 import {
   GOLD_SEAM_PAYOUT,
   HEART_HP,
@@ -10,7 +10,7 @@ import {
   UNPAID_TOLERANCE,
   sellPrice,
 } from './economy';
-import { type Drop, type Entity, isCreature, isHero, spawnEntity } from './entities';
+import { type Drop, type Entity, isCreature, isFair, isHero, spawnEntity } from './entities';
 import {
   GATE_POS,
   type Grid,
@@ -21,6 +21,7 @@ import {
   type Vec,
   createStartGrid,
   inBounds,
+  isCorridor,
   isMarked,
   isRock,
   isRoom,
@@ -39,6 +40,18 @@ export interface LogLine {
   t: number;
   text: string;
 }
+
+/**
+ * How much of a creature's manual page can be read. A page starts as a
+ * silhouette with the gloss; seeing the creature in the hall unlocks the
+ * text and stats; surviving a wave (or, for a mortal, being slain) unlocks
+ * the field notes.
+ */
+export type PageState = 'unseen' | 'seen' | 'studied';
+export type Pages = Record<BeastKind, PageState>;
+
+export const freshPages = (): Pages =>
+  Object.fromEntries(BESTIARY_ORDER.map((k) => [k, 'unseen'])) as Pages;
 
 export interface MapChange {
   x: number;
@@ -73,13 +86,23 @@ export interface GameState {
   mapVersion: number;
   /** Recent tile changes, newest last, so a path can tell whether it was affected. */
   mapChanges: MapChange[];
+  /** Bestiary unlock progress; the UI persists it. */
+  pages: Pages;
+  /** A wave has been announced and not yet cleared. */
+  waveActive: boolean;
+  /** No mortal passes the Gate before this sim time. */
+  wardUntil: number;
+  /** Seconds before the Fair Folk will consider another visit. */
+  tegCooldown: number;
+  /** Sim time of the last squabble log line, so the log is not spammed. */
+  squabbleLogAt: number;
 }
 
 export const ARRIVAL_INTERVAL = 7;
 export const MAX_LOG = 40;
 export const MAX_MAP_CHANGES = 64;
 
-export function createGame(seed = Date.now() & 0xffffffff): GameState {
+export function createGame(seed = Date.now() & 0xffffffff, pages: Pages = freshPages()): GameState {
   const rng = mulberry32(seed);
   const s: GameState = {
     grid: createStartGrid(rng),
@@ -101,6 +124,11 @@ export function createGame(seed = Date.now() & 0xffffffff): GameState {
     nextId: 1,
     mapVersion: 0,
     mapChanges: [],
+    pages: { ...pages },
+    waveActive: false,
+    wardUntil: 0,
+    tegCooldown: 0,
+    squabbleLogAt: -Infinity,
   };
   // Three Coblynau are already at work when the steward takes the keys.
   for (const at of [
@@ -122,7 +150,18 @@ export function addLog(s: GameState, text: string): void {
 export function spawn(s: GameState, kind: BeastKind, at: Vec): Entity {
   const e = spawnEntity(s.nextId++, kind, at);
   s.entities.push(e);
+  if (s.pages[kind] === 'unseen') {
+    s.pages[kind] = 'seen';
+    addLog(s, `The manual's page on the ${BESTIARY[kind].name} is legible now.`);
+  }
   return e;
+}
+
+/** Unlock a page's field notes. */
+export function studyPage(s: GameState, kind: BeastKind): void {
+  if (s.pages[kind] === 'studied') return;
+  s.pages[kind] = 'studied';
+  addLog(s, `Field notes on the ${BESTIARY[kind].name} have been added to the manual.`);
 }
 
 export function removeEntity(s: GameState, e: Entity): void {
@@ -263,12 +302,19 @@ export const hasRoom = (t: Tile): t is RoomTile => isRoom(t);
 // ---------- damage and death ----------
 
 export function damage(s: GameState, target: Entity, amount: number): void {
+  // The Gwyllgi holds the road: half damage while it stands in a corridor.
+  if (target.kind === 'gwyllgi' && isCorridor(s.grid, Math.round(target.x), Math.round(target.y))) amount *= 0.5;
   target.hp -= amount;
   target.flash = 0.25;
+  if (isFair(target)) {
+    offendEmissary(s, target, 'struck');
+    return;
+  }
   if (target.hp > 0) return;
   removeEntity(s, target);
   const at = { x: Math.round(target.x), y: Math.round(target.y) };
   if (target.kind === 'knight' || target.kind === 'priest') {
+    studyPage(s, target.kind);
     const gold = HERO_DROP[target.kind] + target.carrying;
     dropGold(s, at, gold);
     addLog(
@@ -291,13 +337,51 @@ export function strikeHeart(s: GameState, e: Entity): void {
   }
 }
 
+// ---------- the Fair Folk ----------
+
+export const TEG_STAY = 60;
+export const TEG_COOLDOWN = 120;
+export const TEG_VAULT_THRESHOLD = 150;
+
+export const emissary = (s: GameState): Entity | undefined => s.entities.find(isFair);
+
+/** The emissary leaves at once, and remembers. */
+export function offendEmissary(s: GameState, e: Entity, how: 'struck' | 'robbed'): void {
+  removeEntity(s, e);
+  s.tegCooldown = TEG_COOLDOWN * 2;
+  addLog(
+    s,
+    how === 'struck'
+      ? 'The emissary is struck, and is simply not there any more. A note has been made.'
+      : "The Pwca has lifted something from the emissary's sleeve. The emissary leaves without a word, which is worse.",
+  );
+}
+
+/** Buy one of the emissary's terms. Needs an emissary present and the gold. */
+export function trade(s: GameState, kind: TradeKind): boolean {
+  if (!emissary(s) || !spend(s, TRADES[kind].cost)) return false;
+  if (kind === 'heal') {
+    for (const e of s.entities) if (!isHero(e)) e.hp = e.maxHp;
+    addLog(s, 'The emissary says a word in a language with no vowels, and every wound in the hall closes.');
+  } else {
+    s.wardUntil = s.time + WARD_SECONDS;
+    addLog(s, `The emissary hangs something small on the Gate. Nothing mortal will pass it for ${WARD_SECONDS} seconds.`);
+  }
+  return true;
+}
+
+export const warded = (s: GameState): boolean => s.time < s.wardUntil;
+
 // ---------- arrivals ----------
 
 export const ARRIVAL_LOG: Record<BeastKind, string> = {
   coblyn: 'A tapping behind the seam. A Coblyn has come up through the portal.',
   cwn: 'Baying, then silence. A Cŵn Annwn has slunk in from the portal.',
   pwca: 'Two lamp-yellow eyes open in the dark. A Pwca has taken up residence.',
+  gwyllgi: 'Something the size of a calf has lain down across the corridor. The Gwyllgi is here.',
+  ceffyl: 'The Pool goes still, then empties itself upward. A Ceffyl Dŵr shakes the water off.',
   afanc: 'The floor shakes and the walls reconsider. The Afanc has arrived.',
+  teg: 'A courtesy at the portal. An emissary of the Tylwyth Teg has terms, if the steward has a minute.',
   knight: 'Boots on the stair. A Mortal Knight is in the hall.',
   priest: 'A psalm, badly sung. A Hedge-Priest is in the hall.',
 };
@@ -311,10 +395,14 @@ export function chooseArrival(s: GameState): BeastKind | null {
   const lair = roomSize(s, Tile.Lair);
   const hatchery = roomSize(s, Tile.Hatchery);
   const treasury = roomSize(s, Tile.Treasury);
+  const pool = roomSize(s, Tile.Pool);
   if (countKind(s, 'coblyn') < 3) return 'coblyn';
   if (lair >= 4 && hatchery >= 2 && countKind(s, 'cwn') < 3) return 'cwn';
   if (lair >= 2 && treasury >= 2 && countKind(s, 'pwca') < 2) return 'pwca';
+  if (lair >= 6 && treasury >= 3 && countKind(s, 'gwyllgi') < 2) return 'gwyllgi';
+  if (pool >= 3 && lair >= 4 && countKind(s, 'ceffyl') < 1) return 'ceffyl';
   if (lair >= 9 && treasury >= 4 && s.gold >= 300 && countKind(s, 'afanc') < 1) return 'afanc';
+  if (vaultGold(s) >= TEG_VAULT_THRESHOLD && s.tegCooldown <= 0 && countKind(s, 'teg') < 1) return 'teg';
   return null;
 }
 
@@ -324,7 +412,8 @@ function tickArrivals(s: GameState, dt: number): void {
   s.arrivalTimer += ARRIVAL_INTERVAL;
   const kind = chooseArrival(s);
   if (!kind) return;
-  spawn(s, kind, PORTAL_POS);
+  const e = spawn(s, kind, PORTAL_POS);
+  if (kind === 'teg') e.stay = TEG_STAY;
   addLog(s, ARRIVAL_LOG[kind]);
 }
 
@@ -377,9 +466,10 @@ function tickWaves(s: GameState, dt: number): void {
     s.nextWaveAt += WAVE_INTERVAL;
     s.pendingHeroes.push(...waveComposition(s.wave));
     s.spawnTimer = 0;
+    s.waveActive = true;
     addLog(s, `Boots on the stair. Wave ${s.wave}: ${s.pendingHeroes.length} mortals at the Gate.`);
   }
-  if (s.pendingHeroes.length > 0) {
+  if (s.pendingHeroes.length > 0 && !warded(s)) {
     s.spawnTimer -= dt;
     if (s.spawnTimer <= 0) {
       s.spawnTimer = WAVE_STAGGER;
@@ -388,6 +478,14 @@ function tickWaves(s: GameState, dt: number): void {
       e.facing = -1;
     }
   }
+}
+
+/** A wave is cleared when nothing mortal is left in the hall or on the stair. */
+function checkWaveCleared(s: GameState): void {
+  if (!s.waveActive || s.pendingHeroes.length > 0 || heroCount(s) > 0) return;
+  s.waveActive = false;
+  for (const e of s.entities) if (isCreature(e)) studyPage(s, e.kind);
+  if (s.wave < FINAL_WAVE) addLog(s, 'The stair is quiet again. The hall counts its wounds and its gold.');
 }
 
 function checkEnd(s: GameState): void {
@@ -406,6 +504,7 @@ export type EntityUpdater = (s: GameState, e: Entity, dt: number) => void;
 export function step(s: GameState, dt: number, update: EntityUpdater): void {
   if (s.status !== 'playing') return;
   s.time += dt;
+  s.tegCooldown = Math.max(0, s.tegCooldown - dt);
   tickArrivals(s, dt);
   tickWages(s, dt);
   tickWaves(s, dt);
@@ -418,6 +517,7 @@ export function step(s: GameState, dt: number, update: EntityUpdater): void {
     e.repath = Math.max(0, e.repath - dt);
     update(s, e, dt);
   }
+  checkWaveCleared(s);
   checkEnd(s);
 }
 

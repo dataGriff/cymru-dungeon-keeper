@@ -15,7 +15,13 @@ export type Task =
   | 'chase'
   | 'toHeart'
   | 'strike'
-  | 'hold';
+  | 'hold'
+  | 'nudge'
+  | 'retreat'
+  | 'leave';
+
+/** How a creature feels, derived each tick and shown as a glyph. */
+export type Mood = 'content' | 'hungry' | 'tired' | 'angry' | 'afraid';
 
 export interface Entity {
   id: number;
@@ -56,6 +62,11 @@ export interface Entity {
   /** Position at the previous tick, for render interpolation. */
   px: number;
   py: number;
+  mood: Mood;
+  /** 0..100. Squabbles and missed paydays raise it; meals and naps lower it. */
+  temper: number;
+  /** Seconds the emissary will stay, or a creature's retreat timer. */
+  stay: number;
 }
 
 export interface Drop {
@@ -66,7 +77,9 @@ export interface Drop {
 
 export const isHero = (e: Entity): boolean => BESTIARY[e.kind].stats.allegiance === 'mortal';
 export const isWorker = (e: Entity): boolean => e.kind === 'coblyn';
-export const isCreature = (e: Entity): boolean => !isHero(e) && !isWorker(e);
+export const isFair = (e: Entity): boolean => BESTIARY[e.kind].stats.allegiance === 'fair';
+/** The hall's fighting denizens: not workers, not mortals, not the Fair Folk. */
+export const isCreature = (e: Entity): boolean => !isHero(e) && !isWorker(e) && !isFair(e);
 export const hungerRate = (e: Entity): number => APPETITE_RATE[BESTIARY[e.kind].stats.appetite];
 export const speedOf = (e: Entity): number => BESTIARY[e.kind].stats.speed;
 export const attackOf = (e: Entity): number => BESTIARY[e.kind].stats.attack;
@@ -98,6 +111,9 @@ export function spawnEntity(id: number, kind: BeastKind, at: Vec): Entity {
     pathGoal: null,
     px: at.x,
     py: at.y,
+    mood: 'content',
+    temper: 0,
+    stay: 0,
   };
 }
 

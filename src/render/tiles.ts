@@ -127,6 +127,18 @@ export function drawTile(ctx: CanvasRenderingContext2D, g: Grid, x: number, y: n
       ctx.fillRect(cx - half + 2, cy - half + 2, half - 2, half - 2);
       break;
     }
+    case Tile.Pool: {
+      drawFloorBase(ctx, px, py, P.pool);
+      ctx.fillStyle = P.poolDeep;
+      ctx.fillRect(px + 3, py + 3, TILE - 6, TILE - 6);
+      // A ripple that drifts with time, and a still highlight.
+      ctx.fillStyle = P.poolLight;
+      const ry = 6 + Math.floor(((t * 3 + hash2(x, y, 90) * 10) % 10) * 1.6);
+      ctx.fillRect(px + 6, py + ry, 10, 1);
+      ctx.fillRect(px + 14, py + ((ry + 8) % 20) + 4, 8, 1);
+      ctx.fillRect(px + 5, py + 5, 3, 1);
+      break;
+    }
     case Tile.Gate: {
       ctx.fillStyle = P.gate;
       ctx.fillRect(px, py, TILE, TILE);

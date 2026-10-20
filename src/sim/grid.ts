@@ -13,9 +13,10 @@ export enum Tile {
   Portal = 6,
   Heart = 7,
   Gate = 8,
+  Pool = 9,
 }
 
-export type RoomTile = Tile.Lair | Tile.Hatchery | Tile.Treasury;
+export type RoomTile = Tile.Lair | Tile.Hatchery | Tile.Treasury | Tile.Pool;
 
 export interface Vec {
   x: number;
@@ -47,7 +48,8 @@ export const setMarked = (g: Grid, x: number, y: number, on: boolean): void => {
 };
 
 export const isRock = (t: Tile): boolean => t === Tile.Rock || t === Tile.Gold;
-export const isRoom = (t: Tile): t is RoomTile => t === Tile.Lair || t === Tile.Hatchery || t === Tile.Treasury;
+export const isRoom = (t: Tile): t is RoomTile =>
+  t === Tile.Lair || t === Tile.Hatchery || t === Tile.Treasury || t === Tile.Pool;
 /** Anything a creature may stand on. The Heart is a structure, not a floor. */
 export const isWalkable = (t: Tile): boolean => !isRock(t) && t !== Tile.Heart;
 
@@ -91,6 +93,14 @@ export function markedTiles(g: Grid): Vec[] {
   const out: Vec[] = [];
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (isMarked(g, x, y)) out.push({ x, y });
   return out;
+}
+
+/** A corridor tile: walkable, with at most two walkable neighbours. The Gwyllgi holds these. */
+export function isCorridor(g: Grid, x: number, y: number): boolean {
+  if (!isWalkable(tileAt(g, x, y))) return false;
+  let open = 0;
+  for (const n of neighbors4(g, x, y)) if (isWalkable(tileAt(g, n.x, n.y))) open++;
+  return open <= 2;
 }
 
 /**

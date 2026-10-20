@@ -1,7 +1,8 @@
 import { createBoardView, drawBoard, entityAt } from './render/board';
 import { TILE } from './render/tiles';
+import { nudge } from './sim/ai';
 import type { Entity } from './sim/entities';
-import { type GameState, createGame, markDig, paintRoom } from './sim/game';
+import { type GameState, type Pages, createGame, emissary, freshPages, markDig, paintRoom, trade } from './sim/game';
 import { GRID_H, GRID_W, Tile, type Vec, inBounds, isMarked, isRock, tileAt } from './sim/grid';
 import { TICK, advance } from './sim/index';
 import { createCaveAudio } from './ui/audio';
@@ -17,13 +18,41 @@ import { createTooltip } from './ui/tooltip';
 const LONG_PRESS_MS = 450;
 /** Pointer travel (CSS px) before a press counts as a drag rather than a click. */
 const DRAG_PX = 6;
+const PAGES_KEY = 'annwn.bestiary.v1';
+
+function loadPages(): Pages {
+  const pages = freshPages();
+  try {
+    const raw = localStorage.getItem(PAGES_KEY);
+    if (!raw) return pages;
+    const saved = JSON.parse(raw) as Partial<Record<string, string>>;
+    for (const k of Object.keys(pages) as (keyof Pages)[]) {
+      const v = saved[k];
+      if (v === 'seen' || v === 'studied') pages[k] = v;
+    }
+  } catch {
+    /* private mode or blocked storage: play without memory */
+  }
+  return pages;
+}
+
+function savePages(pages: Pages): void {
+  try {
+    localStorage.setItem(PAGES_KEY, JSON.stringify(pages));
+  } catch {
+    /* ignore */
+  }
+}
 
 function main(): void {
   const app = document.querySelector<HTMLDivElement>('#app');
   if (!app) throw new Error('#app missing');
 
-  let state: GameState = createGame();
+  let state: GameState = createGame(undefined, loadPages());
+  let pagesKey = JSON.stringify(state.pages);
   const clock = { acc: 0 };
+  /** The creature in the steward's hand. */
+  let selectedId: number | null = null;
   let paused = false;
   let speed = 1;
 
@@ -32,7 +61,12 @@ function main(): void {
   const view = createBoardView(canvas, GRID_W, GRID_H);
   const hud = createHud();
   const log = createLog(3);
-  const manual = createManual();
+  const manual = createManual({
+    onTrade: (kind) => {
+      trade(state, kind);
+    },
+  });
+  manual.setPages(state.pages);
   const tooltip = createTooltip();
   const audio = createCaveAudio();
 
@@ -48,8 +82,9 @@ function main(): void {
     toolbar.setSpeed(sp);
   };
   const restart = (): void => {
-    state = createGame();
+    state = createGame(undefined, state.pages);
     clock.acc = 0;
+    selectedId = null;
     paused = false;
     toolbar.setPaused(false);
     overlay.hide();
@@ -102,6 +137,16 @@ function main(): void {
   const applyTool = (tool: Tool, p: Vec, secondary: boolean, firstClick: boolean): void => {
     if (!inBounds(state.grid, p.x, p.y) || state.status !== 'playing') return;
     const t = tileAt(state.grid, p.x, p.y);
+    if (tool === 'hand') {
+      if (!firstClick) return;
+      if (secondary) {
+        selectedId = null;
+        return;
+      }
+      const held = state.entities.find((e) => e.id === selectedId);
+      if (held) nudge(state, held, p);
+      return;
+    }
     if (tool === 'dig') {
       markDig(state, p.x, p.y, secondary ? false : digMode);
       return;
@@ -130,10 +175,10 @@ function main(): void {
     const secondary = ev.button === 2;
     // Under the Dig tool a click on a creature opens its page (dig does nothing on floor anyway);
     // room tools always paint, so wandering Coblynau cannot eat your clicks.
-    const creature = secondary || toolbar.active !== 'dig' ? null : entityAt(state, bx, by);
+    const creature = secondary || (toolbar.active !== 'dig' && toolbar.active !== 'hand') ? null : entityAt(state, bx, by);
     press = { x: ev.clientX, y: ev.clientY, dragging: false, creature, secondary, timer: 0 };
     if (creature) {
-      // Decide on release: a click opens the manual, a drag paints.
+      // Decide on release: a click opens the manual (and, with the Hand, picks the creature up); a drag paints.
       return;
     }
     if (ev.pointerType === 'touch' && !secondary) {
@@ -167,7 +212,10 @@ function main(): void {
   const release = (): void => {
     if (press) {
       window.clearTimeout(press.timer);
-      if (press.creature && !press.dragging) manual.open(press.creature.kind);
+      if (press.creature && !press.dragging) {
+        manual.open(press.creature.kind);
+        if (toolbar.active === 'hand') selectedId = press.creature.id;
+      }
     }
     press = null;
     painting = false;
@@ -216,9 +264,17 @@ function main(): void {
     last = now;
     const alpha = paused ? Math.min(1, clock.acc / TICK) : advance(state, clock, elapsed, speed);
     const t = now / 1000;
-    drawBoard(view, state, t, hover, alpha);
+    if (selectedId !== null && !state.entities.some((e) => e.id === selectedId)) selectedId = null;
+    drawBoard(view, state, t, hover, alpha, selectedId);
     hud.update(state, paused, speed);
     log.update(state);
+    manual.setEmissary(emissary(state) !== undefined, state.gold);
+    const pk = JSON.stringify(state.pages);
+    if (pk !== pagesKey) {
+      pagesKey = pk;
+      manual.setPages(state.pages);
+      savePages(state.pages);
+    }
     manual.tick(t);
     if (state.status !== lastStatus) {
       lastStatus = state.status;

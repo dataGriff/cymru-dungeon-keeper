@@ -4,6 +4,7 @@ export const ROOM_COST: Record<RoomTile, number> = {
   [Tile.Lair]: 15,
   [Tile.Hatchery]: 25,
   [Tile.Treasury]: 30,
+  [Tile.Pool]: 40,
 };
 
 export const GOLD_SEAM_PAYOUT = 25;

@@ -16,6 +16,8 @@ export interface BeastPose {
   /** Walking bobs the figure; sleeping lays it lower. */
   moving: boolean;
   sleeping: boolean;
+  /** Draw as a flat black shape: a page in the manual not yet unlocked. */
+  silhouette: boolean;
 }
 
 export interface BeastRenderer {
@@ -65,6 +67,15 @@ const C = {
   rope: '#4e3e26',
   beard: '#b9b2a6',
   hair: '#4b3425',
+  gwyllgi: '#1b1a22',
+  gwyllgiEdge: '#33313d',
+  forge: '#ff7a1f',
+  water: '#8fa7b8',
+  waterDark: '#5d7384',
+  mist: '#d9e4ea',
+  fair: '#e8e2cf',
+  fairGold: '#d8b85a',
+  fairGreen: '#4f7f63',
 } as const;
 
 const FIGURES: Record<BeastKind, readonly Rect[]> = {
@@ -121,6 +132,48 @@ const FIGURES: Record<BeastKind, readonly Rect[]> = {
     r(2, 10, 2, 3, C.greenDark),
     r(7, 10, 2, 3, C.greenDark),
   ],
+  gwyllgi: [
+    r(1, 4, 1, 2, C.gwyllgi),
+    r(2, 5, 8, 5, C.gwyllgi),
+    r(2, 5, 8, 1, C.gwyllgiEdge),
+    r(8, 3, 4, 4, C.gwyllgi),
+    r(8, 2, 1, 1, C.gwyllgi),
+    r(10, 2, 1, 1, C.gwyllgi),
+    r(10, 4, 1, 1, C.forge),
+    r(11, 6, 1, 1, C.gwyllgiEdge),
+    r(2, 10, 2, 3, C.gwyllgi),
+    r(5, 10, 1, 3, C.gwyllgiEdge),
+    r(7, 10, 2, 3, C.gwyllgi),
+  ],
+  ceffyl: [
+    r(0, 6, 1, 3, C.waterDark),
+    r(1, 5, 7, 4, C.water),
+    r(2, 8, 5, 1, C.waterDark),
+    r(7, 2, 2, 5, C.water),
+    r(8, 1, 1, 1, C.water),
+    r(9, 3, 3, 2, C.water),
+    r(11, 4, 1, 1, C.waterDark),
+    r(10, 3, 1, 1, C.ink),
+    r(6, 1, 1, 4, C.mist),
+    r(5, 0, 1, 2, C.mist),
+    r(1, 9, 1, 4, C.water),
+    r(3, 9, 1, 4, C.waterDark),
+    r(5, 9, 1, 4, C.water),
+    r(7, 9, 1, 4, C.waterDark),
+  ],
+  teg: [
+    r(4, 0, 4, 1, C.fairGold),
+    r(4, 1, 4, 3, C.fair),
+    r(7, 2, 1, 1, C.fairGreen),
+    r(3, 4, 6, 7, C.fairGreen),
+    r(4, 5, 4, 5, C.fair),
+    r(3, 11, 6, 1, C.fairGold),
+    r(4, 12, 1, 2, C.fair),
+    r(7, 12, 1, 2, C.fair),
+    r(9, 5, 2, 1, C.fair),
+    r(10, 2, 1, 4, C.fairGold),
+    r(2, 6, 1, 2, C.fair),
+  ],
   knight: [
     r(5, 0, 1, 1, C.plume),
     r(6, 0, 1, 2, C.plume),
@@ -161,7 +214,7 @@ export const pixelBeastRenderer: BeastRenderer = {
     const y0 = baseY - SPRITE_H * px + (bob + lie) * px;
     for (const q of FIGURES[kind]) {
       const fx = pose.facing === 1 ? q.x : SPRITE_W - q.x - q.w;
-      ctx.fillStyle = q.c;
+      ctx.fillStyle = pose.silhouette ? C.ink : q.c;
       ctx.fillRect(Math.round(x0 + fx * px), Math.round(y0 + q.y * px), q.w * px, q.h * px);
     }
   },
@@ -186,5 +239,6 @@ export function drawBeast(
     facing: pose.facing ?? 1,
     moving: pose.moving ?? false,
     sleeping: pose.sleeping ?? false,
+    silhouette: pose.silhouette ?? false,
   });
 }

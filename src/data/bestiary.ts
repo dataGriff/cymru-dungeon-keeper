@@ -3,10 +3,11 @@
  * The manual panel, the sim and the printable manual (later) all read from it.
  */
 
-export type BeastKind = 'coblyn' | 'cwn' | 'pwca' | 'afanc' | 'knight' | 'priest';
+export type BeastKind = 'coblyn' | 'cwn' | 'pwca' | 'gwyllgi' | 'ceffyl' | 'afanc' | 'teg' | 'knight' | 'priest';
 
 export type Appetite = 'none' | 'low' | 'high' | 'ruinous';
-export type Allegiance = 'hall' | 'mortal';
+/** The hall's own, the mortals who come for the Heart, or the Fair Folk who come for terms. */
+export type Allegiance = 'hall' | 'mortal' | 'fair';
 
 export interface BeastEntry {
   kind: BeastKind;
@@ -93,6 +94,45 @@ export const BESTIARY: Record<BeastKind, BeastEntry> = {
     ],
     stats: { hp: 90, attack: 9, speed: 1.3, wage: 60, appetite: 'ruinous', allegiance: 'hall' },
   },
+  gwyllgi: {
+    kind: 'gwyllgi',
+    name: 'Gwyllgi',
+    gloss: 'The black dog of the crossroads.',
+    flavour:
+      'Where two roads meet there is a dog, and the dog is the size of a calf, and its eyes are the colour of a forge. The Gwyllgi does not hunt; it waits. Travellers who meet it describe a long silence and then nothing, because the ones who describe it are the ones it let pass. In the hall it chooses a corridor and becomes part of it. It is slower to anger than the hounds and a great deal harder to move once angered.',
+    notes: [
+      'Arrives once you have a Lair of 6 and a Treasury of 3.',
+      'Holds the road: takes half damage standing in a corridor. Give it one.',
+      'Slow to anger. It will not leave its post for a mortal more than four tiles off.',
+    ],
+    stats: { hp: 50, attack: 5, speed: 2.0, wage: 25, appetite: 'high', allegiance: 'hall' },
+  },
+  ceffyl: {
+    kind: 'ceffyl',
+    name: 'Ceffyl Dŵr',
+    gloss: 'The water horse that is not a horse.',
+    flavour:
+      'It comes up out of the Pool grey and dripping and lets you believe it is a horse for as long as it takes you to climb on. Then it is in the air, then it is mist, and the rider is somewhere else entirely. In the hall it is lightning in a corridor: it hits once, hard, and is gone before the blade comes round. It will share a Pool with the Afanc with very bad grace.',
+    notes: [
+      'Arrives once you have a Pool of 3 and a Lair of 4.',
+      'Charges, strikes, breaks off. Long corridors suit it; so does a second Pool.',
+      'Dislikes the Afanc. Two Pools, or one of them sulks.',
+    ],
+    stats: { hp: 40, attack: 6, speed: 4.0, wage: 30, appetite: 'high', allegiance: 'hall' },
+  },
+  teg: {
+    kind: 'teg',
+    name: 'Tylwyth Teg emissary',
+    gloss: 'An envoy of the Fair Folk, with terms.',
+    flavour:
+      'They come when the vault is full enough to be interesting, dressed in a courtesy so complete it is a kind of weapon. The emissary wants nothing, it says, and then names a price. Its gold is real, its healing is real, and its wards hold until exactly when it said they would. Do not strike it. Do not let the Pwca near it. It keeps a list, and the list is long, and the Fair Folk live a very long time.',
+    notes: [
+      'Arrives when the vault holds 150 gold, and stays about a minute.',
+      'Trades gold for healing or a ward on the Gate. The card in the manual has the terms.',
+      'Leaves offended if struck, or if anything is lifted from its sleeve. Keep the Pwca elsewhere.',
+    ],
+    stats: { hp: 20, attack: 0, speed: 2.4, wage: 0, appetite: 'none', allegiance: 'fair' },
+  },
   knight: {
     kind: 'knight',
     name: 'Mortal Knight',
@@ -122,13 +162,33 @@ export const BESTIARY: Record<BeastKind, BeastEntry> = {
 };
 
 /** Manual page order: the six tabs, left to right. */
-export const BESTIARY_ORDER: readonly BeastKind[] = ['coblyn', 'cwn', 'pwca', 'afanc', 'knight', 'priest'];
+export const BESTIARY_ORDER: readonly BeastKind[] = ['coblyn', 'cwn', 'pwca', 'gwyllgi', 'ceffyl', 'afanc', 'teg', 'knight', 'priest'];
 
 /** The running header starts at this page and increments per entry. */
 export const MANUAL_FIRST_PAGE = 14;
 
 export const MANUAL_FOOTNOTE =
   'From the manual. Keep this page open while you play; the hall does not forgive a steward who cannot tell a hound from a hound of men.';
+
+/**
+ * Who cannot stand whom. Two creatures that dislike each other squabble when
+ * they share a Lair or Pool region: mood suffers, never HP. Symmetric.
+ */
+export const DISLIKES: readonly (readonly [BeastKind, BeastKind])[] = [
+  ['cwn', 'pwca'],
+  ['afanc', 'ceffyl'],
+];
+
+export const dislikes = (a: BeastKind, b: BeastKind): boolean =>
+  DISLIKES.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+
+/** The emissary's terms. */
+export const TRADES = {
+  heal: { cost: 40, label: 'A blessing on the hall', text: 'Every creature of the hall is made whole. 40 gold.' },
+  ward: { cost: 60, label: 'A ward on the Gate', text: 'No mortal passes the Gate for thirty seconds. 60 gold.' },
+} as const;
+export type TradeKind = keyof typeof TRADES;
+export const WARD_SECONDS = 30;
 
 /** Gold a dead hero leaves on the floor. */
 export const HERO_DROP: Record<'knight' | 'priest', number> = { knight: 30, priest: 12 };

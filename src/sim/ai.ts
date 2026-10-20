@@ -2,13 +2,16 @@
  * Behaviours. Each is a few lines on purpose: workers dig and flee, creatures
  * eat, sleep, fight and wander, heroes walk to the Heart and hit what is near.
  */
-import { BESTIARY } from '../data/bestiary';
+import { BESTIARY, dislikes } from '../data/bestiary';
 import { DIG_SECONDS } from './economy';
 import {
   type Entity,
+  type Mood,
   attackOf,
   distBetween,
   hungerRate,
+  isCreature,
+  isFair,
   isHero,
   nearest,
   speedOf,
@@ -21,6 +24,7 @@ import {
   depositGold,
   digTile,
   dropGold,
+  offendEmissary,
   removeEntity,
   spend,
   strikeHeart,
@@ -38,6 +42,7 @@ import {
   isWalkable,
   markedTiles,
   neighbors4,
+  regionsOf,
   sameTile,
   tileAt,
   tilesOf,
@@ -58,6 +63,17 @@ export const HEART_STRIKE_SECONDS = 1;
 export const REACH = 1.15;
 export const TUNNEL_SPEED = 0.25;
 export const PRIEST_HEAL_PER_SECOND = 1.2;
+/** Temper at which a creature counts as angry. */
+export const ANGRY_AT = 60;
+/** Temper gained per second by each of two creatures squabbling in a shared room. */
+export const SQUABBLE_RATE = 8;
+export const SQUABBLE_LOG_GAP = 60;
+/** Below this fraction of health, a creature with a mortal nearby is afraid. */
+export const AFRAID_BELOW = 0.25;
+/** How far an angry (sulking) creature will bother to go for a mortal. */
+export const SULK_RANGE = 3;
+export const GWYLLGI_RANGE = 4;
+export const CEFFYL_RETREAT = 1.0;
 
 // ---------- movement ----------
 
@@ -213,6 +229,44 @@ function seekTile(s: GameState, e: Entity, to: Vec, task: Entity['task'], dt: nu
   return walk(s, e, dt) && e.x === to.x && e.y === to.y;
 }
 
+/** The steward's hand: send a creature somewhere. Overrides idling and wandering, never a fight or a flight. */
+export function nudge(s: GameState, e: Entity, to: Vec): boolean {
+  if (!isCreature(e) && !isFair(e) && e.kind !== 'coblyn') return false;
+  if (!['idle', 'wander', 'nudge', 'eat', 'sleep', 'toFood', 'toBed'].includes(e.task)) return false;
+  if (!isWalkable(tileAt(s.grid, to.x, to.y))) return false;
+  e.task = 'nudge';
+  e.target = to;
+  return setPath(s, e, to, 'floor');
+}
+
+function deriveMood(e: Entity, threatened: boolean): Mood {
+  if (threatened && e.hp < e.maxHp * AFRAID_BELOW) return 'afraid';
+  if (e.unpaid > 0 || e.temper >= ANGRY_AT) return 'angry';
+  if (e.hunger > HUNGER_EAT) return 'hungry';
+  if (e.sleep > SLEEP_AT) return 'tired';
+  return 'content';
+}
+
+/** Two creatures that dislike each other, standing in the same Lair or Pool region, squabble. */
+function squabble(s: GameState, e: Entity, dt: number): void {
+  const here = tileOf(e);
+  const t = tileAt(s.grid, here.x, here.y);
+  if (t !== Tile.Lair && t !== Tile.Pool) return;
+  const region = regionsOf(s.grid, t).find((r) => r.some((p) => sameTile(p, here)));
+  if (!region) return;
+  for (const o of s.entities) {
+    if (o === e || !isCreature(o) || !dislikes(e.kind, o.kind)) continue;
+    const ot = tileOf(o);
+    if (!region.some((p) => sameTile(p, ot))) continue;
+    e.temper = Math.min(100, e.temper + SQUABBLE_RATE * dt);
+    if (s.time - s.squabbleLogAt >= SQUABBLE_LOG_GAP) {
+      s.squabbleLogAt = s.time;
+      const room = t === Tile.Lair ? 'Lair' : 'Pool';
+      addLog(s, `Growling in the ${room}: the ${BESTIARY[e.kind].name} and the ${BESTIARY[o.kind].name} are not getting on. Build them separate rooms.`);
+    }
+  }
+}
+
 // ---------- Coblyn ----------
 
 function claimedDrop(s: GameState, drop: Vec, self: Entity): boolean {
@@ -293,6 +347,10 @@ export function updateWorker(s: GameState, e: Entity, dt: number): void {
     }
     return;
   }
+  if (e.task === 'nudge' && e.target) {
+    if (walk(s, e, dt)) idle(e, 0.5);
+    return;
+  }
   if (e.carrying > 0) {
     carryToTreasury(s, e, dt);
     return;
@@ -320,27 +378,76 @@ function carryToTreasury(s: GameState, e: Entity, dt: number): void {
   }
 }
 
-// ---------- Cŵn Annwn, Pwca, Afanc ----------
+// ---------- Cŵn Annwn, Pwca, Gwyllgi, Ceffyl Dŵr, Afanc ----------
+
+/** Where this creature would rather rest: the Pool for the water-beasts, else a Lair. */
+function restTile(s: GameState, e: Entity): Vec | null {
+  if (e.kind === 'afanc' || e.kind === 'ceffyl') {
+    const pool = nearestTile(s, e, Tile.Pool);
+    if (pool) return pool;
+  }
+  return nearestTile(s, e, Tile.Lair);
+}
 
 export function updateCreature(s: GameState, e: Entity, dt: number): void {
   if (e.task !== 'sleep') {
     e.hunger += hungerRate(e) * dt;
     e.sleep += SLEEP_RATE * dt;
   }
+  e.temper = Math.max(0, e.temper - 0.5 * dt);
+  squabble(s, e, dt);
   if (e.kind === 'pwca' && s.gold > 0 && s.rng() < dt / 12) spend(s, 1);
+  if (e.kind === 'pwca') {
+    const mark = nearest(e, s.entities, 2, isFair);
+    if (mark && s.rng() < dt / 6) offendEmissary(s, mark, 'robbed');
+  }
 
-  const foe = nearest(e, s.entities, 7, (o) => isHero(o) && !(e.kind === 'pwca' && o.kind === 'knight' && e.hp <= 10));
+  const threat = nearest(e, s.entities, 4, isHero);
+  e.mood = deriveMood(e, threat !== null);
+
+  // Fear beats everything except the Gwyllgi's stubbornness.
+  if (e.mood === 'afraid' && threat && e.kind !== 'gwyllgi') {
+    flee(s, e, threat, dt);
+    return;
+  }
+  // The Ceffyl Dŵr breaks off after a blow, then comes round again.
+  if (e.task === 'retreat') {
+    e.stay -= dt;
+    const foe = s.entities.find((o) => o.id === e.targetId);
+    if (e.stay > 0 && foe) {
+      flee(s, e, foe, dt);
+      e.task = 'retreat';
+      return;
+    }
+    idle(e, 0);
+  }
+
+  const range = e.kind === 'gwyllgi' ? GWYLLGI_RANGE : e.mood === 'angry' ? SULK_RANGE : 7;
+  const foe = nearest(e, s.entities, range, (o) => isHero(o) && !(e.kind === 'pwca' && o.kind === 'knight' && e.hp <= 10));
   if (foe) {
+    const hpBefore = foe.hp;
     engage(s, e, foe, dt, 'floor');
+    if (e.kind === 'ceffyl' && foe.hp < hpBefore) {
+      e.task = 'retreat';
+      e.targetId = foe.id;
+      e.stay = CEFFYL_RETREAT;
+      e.path = [];
+      e.pathGoal = null;
+    }
     return;
   }
   if (e.task === 'chase') idle(e, 0);
 
+  if (e.task === 'nudge' && e.target) {
+    if (walk(s, e, dt)) idle(e, 0.5);
+    return;
+  }
   if (e.task === 'eat') {
     e.timer -= dt;
     if (e.timer <= 0) {
       e.hunger = 0;
       e.hp = Math.min(e.maxHp, e.hp + EAT_HEAL);
+      e.temper = Math.max(0, e.temper - 20);
       idle(e, 0.3);
     }
     return;
@@ -350,6 +457,7 @@ export function updateCreature(s: GameState, e: Entity, dt: number): void {
     if (e.timer <= 0) {
       e.sleep = 0;
       e.hp = Math.min(e.maxHp, e.hp + NAP_HEAL);
+      e.temper = Math.max(0, e.temper - 30);
       idle(e, 0.3);
     }
     return;
@@ -370,7 +478,7 @@ export function updateCreature(s: GameState, e: Entity, dt: number): void {
     }
   }
   if (e.sleep > SLEEP_AT) {
-    const bed = nearestTile(s, e, Tile.Lair);
+    const bed = restTile(s, e);
     if (bed) {
       if (seekTile(s, e, bed, 'toBed', dt)) {
         e.task = 'sleep';
@@ -378,6 +486,29 @@ export function updateCreature(s: GameState, e: Entity, dt: number): void {
       }
       return;
     }
+  }
+  wander(s, e, dt);
+}
+
+// ---------- Tylwyth Teg emissary ----------
+
+export function updateEmissary(s: GameState, e: Entity, dt: number): void {
+  e.stay -= dt;
+  if (e.stay <= 0) {
+    removeEntity(s, e);
+    s.tegCooldown = 120;
+    addLog(s, 'The emissary bows, and is not there. The terms, it says, stand until next time.');
+    return;
+  }
+  const threat = nearest(e, s.entities, 4, isHero);
+  if (threat) {
+    flee(s, e, threat, dt);
+    return;
+  }
+  if (e.task === 'flee') idle(e, 0);
+  if (e.task === 'nudge' && e.target) {
+    if (walk(s, e, dt)) idle(e, 0.5);
+    return;
   }
   wander(s, e, dt);
 }
@@ -432,5 +563,6 @@ export function updateHero(s: GameState, e: Entity, dt: number): void {
 export function updateEntity(s: GameState, e: Entity, dt: number): void {
   if (isHero(e)) updateHero(s, e, dt);
   else if (e.kind === 'coblyn') updateWorker(s, e, dt);
+  else if (isFair(e)) updateEmissary(s, e, dt);
   else updateCreature(s, e, dt);
 }

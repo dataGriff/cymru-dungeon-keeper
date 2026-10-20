@@ -1,7 +1,7 @@
 import { BESTIARY } from '../data/bestiary';
 import type { Entity } from '../sim/entities';
-import { type GameState, treasuryCapacity, vaultGold } from '../sim/game';
-import { type Vec, inBounds, isRock, markedTiles, tileAt } from '../sim/grid';
+import { type GameState, treasuryCapacity, vaultGold, warded } from '../sim/game';
+import { GATE_POS, type Vec, inBounds, isRock, markedTiles, tileAt } from '../sim/grid';
 import { drawLighting } from './lighting';
 import { PALETTE as P } from './palette';
 import { drawBeast } from './sprites';
@@ -28,12 +28,19 @@ export function createBoardView(canvas: HTMLCanvasElement, w: number, h: number)
 
 export const SPRITE_PX = 2;
 
-function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, t: number, alpha: number): void {
+function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, t: number, alpha: number, selected: boolean): void {
   const ix = e.px + (e.x - e.px) * alpha;
   const iy = e.py + (e.y - e.py) * alpha;
   const cx = (ix + 0.5) * TILE;
   const baseY = (iy + 1) * TILE - 1;
   const sleeping = e.task === 'sleep';
+  if (selected) {
+    ctx.strokeStyle = P.bone;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(cx, baseY - 1, 11, 4, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
   drawBeast(ctx, e.kind, cx, baseY, SPRITE_PX, {
     t: t + e.id,
     facing: e.facing,
@@ -63,10 +70,12 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, t: number, alpha: 
     ctx.fillStyle = P.gold;
     ctx.fillRect(cx - 2, baseY - 30, 4, 2);
   }
-  if (e.unpaid > 0) {
-    ctx.fillStyle = P.blood;
+  // Mood glyph: ! angry, ? afraid, ~ hungry, z tired (a sleeping creature already shows a z).
+  if (e.mood !== 'content' && !sleeping) {
+    const glyph = e.mood === 'angry' ? '!' : e.mood === 'afraid' ? '?' : e.mood === 'hungry' ? '~' : 'z';
+    ctx.fillStyle = e.mood === 'angry' ? P.blood : e.mood === 'hungry' ? P.gold : P.bone;
     ctx.font = 'bold 12px VT323, monospace';
-    ctx.fillText('!', cx - 10, baseY - 24);
+    ctx.fillText(glyph, cx - 11, baseY - 24);
   }
   if (e.hp < e.maxHp) {
     const frac = Math.max(0, e.hp / e.maxHp);
@@ -92,7 +101,14 @@ function drawDrop(ctx: CanvasRenderingContext2D, x: number, y: number, t: number
  * Draw everything: tiles, drops, beasts (back to front), then the lighting pass.
  * `alpha` is the fraction of the way from the previous sim tick to the current one.
  */
-export function drawBoard(view: BoardView, s: GameState, t: number, hover: Vec | null, alpha = 1): void {
+export function drawBoard(
+  view: BoardView,
+  s: GameState,
+  t: number,
+  hover: Vec | null,
+  alpha = 1,
+  selectedId: number | null = null,
+): void {
   const { ctx } = view;
   const g = s.grid;
   const cap = treasuryCapacity(g);
@@ -100,7 +116,19 @@ export function drawBoard(view: BoardView, s: GameState, t: number, hover: Vec |
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) drawTile(ctx, g, x, y, t, fill);
   for (const d of s.drops) drawDrop(ctx, d.x, d.y, t);
   const sorted = [...s.entities].sort((a, b) => a.y - b.y);
-  for (const e of sorted) drawEntity(ctx, e, t, alpha);
+  for (const e of sorted) drawEntity(ctx, e, t, alpha, e.id === selectedId);
+  if (warded(s)) {
+    // The emissary's ward: a cold ring on the Gate.
+    const gx = (GATE_POS.x + 0.5) * TILE;
+    const gy = (GATE_POS.y + 0.5) * TILE;
+    ctx.strokeStyle = P.ward;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.6 + 0.3 * Math.sin(t * 5);
+    ctx.beginPath();
+    ctx.arc(gx, gy, 12 + Math.sin(t * 3) * 2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
   drawLighting(ctx, view.light, g, s.entities, t);
   // The steward's own marks stay legible in the dark: redraw them over the lighting.
   ctx.strokeStyle = P.mark;

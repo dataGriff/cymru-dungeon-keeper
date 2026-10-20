@@ -62,6 +62,9 @@ describe('arrival rules', () => {
     build(s, Tile.Treasury, 4, 6, 5);
     spawn(s, 'pwca', PORTAL_POS);
     spawn(s, 'pwca', PORTAL_POS);
+    spawn(s, 'gwyllgi', PORTAL_POS);
+    spawn(s, 'gwyllgi', PORTAL_POS);
+    s.tegCooldown = 999; // the Fair Folk would otherwise notice 300 gold
     s.gold = 299;
     expect(chooseArrival(s)).toBeNull();
     s.gold = 300;

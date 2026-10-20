@@ -2,22 +2,25 @@ import { ROOM_COST } from '../sim/economy';
 import { Tile } from '../sim/grid';
 import { el } from './dom';
 
-export type Tool = 'dig' | 'lair' | 'hatchery' | 'treasury';
+export type Tool = 'hand' | 'dig' | 'lair' | 'hatchery' | 'treasury' | 'pool';
 
-export const TOOL_ROOM: Record<Exclude<Tool, 'dig'>, Tile.Lair | Tile.Hatchery | Tile.Treasury> = {
+export const TOOL_ROOM: Record<Exclude<Tool, 'dig' | 'hand'>, Tile.Lair | Tile.Hatchery | Tile.Treasury | Tile.Pool> = {
   lair: Tile.Lair,
   hatchery: Tile.Hatchery,
   treasury: Tile.Treasury,
+  pool: Tile.Pool,
 };
 
 /** Keyboard shortcut per tool. */
-export const TOOL_KEYS: Record<Tool, string> = { dig: 'd', lair: 'l', hatchery: 'h', treasury: 't' };
+export const TOOL_KEYS: Record<Tool, string> = { hand: 'g', dig: 'd', lair: 'l', hatchery: 'h', treasury: 't', pool: 'p' };
 
 const TOOLS: { tool: Tool; label: string; hint: string }[] = [
+  { tool: 'hand', label: 'Hand', hint: 'Click a creature to read its page and pick it up; click a tile to send it there. Right-click lets go.' },
   { tool: 'dig', label: 'Dig', hint: 'Mark rock for the Coblynau. Click or drag; right-click or click again to unmark. Click a creature to read its page.' },
   { tool: 'lair', label: `Lair ${ROOM_COST[Tile.Lair]}g`, hint: 'Paint onto floor. Creatures sleep here. Right-click or click again to sell for half.' },
   { tool: 'hatchery', label: `Hatchery ${ROOM_COST[Tile.Hatchery]}g`, hint: 'Paint onto floor. Creatures eat here. Right-click or click again to sell for half.' },
   { tool: 'treasury', label: `Treasury ${ROOM_COST[Tile.Treasury]}g`, hint: 'Paint onto floor. Holds your gold; bigger rooms hold more per tile. Right-click or click again to sell for half.' },
+  { tool: 'pool', label: `Pool ${ROOM_COST[Tile.Pool]}g`, hint: 'Paint onto floor. The water-beasts rest here. Right-click or click again to sell for half.' },
 ];
 
 export interface ToolbarHandlers {

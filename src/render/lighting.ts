@@ -29,10 +29,14 @@ function collectLights(g: Grid, entities: readonly Entity[]): Light[] {
   tilesOf(g, Tile.Treasury).forEach((p, i) => {
     if (i % 4 === 0) add(p.x, p.y, 52, i + 0.7);
   });
+  tilesOf(g, Tile.Pool).forEach((p, i) => {
+    if (i % 3 === 0) add(p.x, p.y, 44, i + 0.9);
+  });
   for (const e of entities) {
     if (e.kind === 'coblyn') add(e.x, e.y, 46, e.id);
     else if (e.kind === 'knight' || e.kind === 'priest') add(e.x, e.y, 58, e.id);
     else if (e.kind === 'pwca') add(e.x, e.y, 22, e.id);
+    else if (e.kind === 'teg') add(e.x, e.y, 40, e.id);
   }
   return lights;
 }

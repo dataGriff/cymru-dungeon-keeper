@@ -14,6 +14,7 @@ const TILE_NAME: Record<Tile, string> = {
   [Tile.Portal]: 'Portal',
   [Tile.Heart]: 'The Heart',
   [Tile.Gate]: 'The Gate',
+  [Tile.Pool]: 'Pool',
 };
 
 export interface Tooltip {
@@ -34,7 +35,7 @@ export function createTooltip(): Tooltip {
       let text: string;
       if (entity) {
         const st = BESTIARY[entity.kind];
-        text = `${st.name} · ${Math.ceil(entity.hp)}/${entity.maxHp}` + (entity.carrying > 0 ? ` · carrying ${entity.carrying}g` : '');
+        text = `${st.name} · ${Math.ceil(entity.hp)}/${entity.maxHp}` + (entity.mood !== 'content' ? ` · ${entity.mood}` : '') + (entity.carrying > 0 ? ` · carrying ${entity.carrying}g` : '');
       } else {
         text = TILE_NAME[t];
         if (isRoom(t)) text += ` · region of ${regionSizeAt(s.grid, tile.x, tile.y, t)}`;
