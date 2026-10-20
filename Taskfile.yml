@@ -1,0 +1,41 @@
+# https://taskfile.dev — run `task --list`
+version: '3'
+
+tasks:
+  install:
+    desc: Install dependencies
+    cmds:
+      - npm ci
+    sources: [package.json, package-lock.json]
+    generates: [node_modules/.package-lock.json]
+
+  dev:
+    desc: Serve the game with hot reload
+    deps: [install]
+    cmds:
+      - npm run dev
+
+  build:
+    desc: Build the static site into dist/
+    deps: [install]
+    cmds:
+      - npm run build
+
+  test:
+    desc: Run the sim unit tests (Vitest)
+    deps: [install]
+    cmds:
+      - npm run test
+
+  lint:
+    desc: ESLint + strict TypeScript typecheck
+    deps: [install]
+    cmds:
+      - npm run lint
+
+  check:
+    desc: lint + test + build
+    cmds:
+      - task: lint
+      - task: test
+      - task: build
