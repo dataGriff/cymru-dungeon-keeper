@@ -1,8 +1,8 @@
 # Steward of Annwn
 
-A Dungeon Keeper-style proof of concept in Welsh myth. Arawn, lord of Annwn, rides with the Wild Hunt and has left you the keys to his underground hall. Mortals have heard he is gone and come down the stair to strike the Heart. Keep it beating through three waves.
+A Dungeon Keeper-style game in Welsh myth. Arawn, lord of Annwn, rides with the Wild Hunt and has left you the keys to his underground hall. Mortals have heard he is gone and come down the stair to strike the Heart. Keep it beating through a five-level campaign, from the Cairn to the night the Hunt returns.
 
-Vite + TypeScript, plain Canvas 2D, no engine, no runtime dependencies. One static page that could later be wrapped by Tauri.
+Vite + TypeScript, plain Canvas 2D, no engine, no runtime dependencies. One static page, with a Tauri wrapper for the desktop.
 
 ## Screenshots
 
@@ -21,36 +21,50 @@ mise install        # node + task, pinned in .mise.toml
 task dev            # serve with hot reload
 task check          # lint + test + bench + build (what CI runs)
 task sprites        # re-render art/figures.json into public/sprites.png
+task manual         # dist/manual.pdf and dist/reference-card.pdf from the game data
+task box            # box front/back/spine, 3D mock and the title art (docs/box)
+task desktop        # Tauri bundle for this platform (see docs/desktop.md)
+task release        # zip the web build and push to itch.io with butler
 task --list         # everything else
 ```
+
+Open `?start=cairn` (or any level id) to skip the title screen.
 
 ## Controls
 
 | Action | How |
 | --- | --- |
-| Pick a tool | Toolbar buttons, or keys `1` Dig · `2` Lair · `3` Hatchery · `4` Treasury |
-| Mark rock for digging | Dig tool: click or drag across rock. Click a marked tile to unmark it. |
-| Build a room | Room tool: click a floor tile. Lair 15g, Hatchery 25g, Treasury 30g. |
-| Sell a room | Click a tile of that room with the same tool. You get half back. |
-| Read about a creature | Click it on the board, or use the tabs on the manual page. |
-| Sound | The "Sound" button. It must be a click; browsers insist. |
+| Pick a tool | Toolbar buttons, or keys `G` Hand · `D` Dig · `L` Lair · `H` Hatchery · `T` Treasury · `P` Pool · `I` Pit · `B` Boulder · `S` Snare |
+| Mark rock for digging | Dig tool: click or drag across rock. Right-click, or click a marked tile, to unmark. |
+| Build a room | Room tool: click or drag on floor. Lair 15g, Hatchery 25g, Treasury 30g, Pool 40g. Rooms are contiguous regions; bigger is better. |
+| Sell a room | Right-click it, or click it again with the same tool. Half back. |
+| Lay a trap | Pit, Boulder or Snare on floor; a Coblyn builds it. Click again to cancel. |
+| Pick up a creature | Hand tool: click it (opens its page), then click a tile to send it there. |
+| Read about a creature | Dig or Hand tool: click it. Or use the tabs on the manual page. |
+| Pause, speed, restart | `Space`, `1` `2` `3`, `R` (asks first). You can still plan while paused. |
+| Keyboard-only | Focus the board: arrows move a cursor, `Enter` uses the tool, `Backspace` is the right-click. |
+| Save and load | Save / Load use the browser; Export / Import use a file. |
+| Fullscreen, timings | `F11`, `F3`. Settings has text size, board scale, reduced motion, steady torches and colour-blind safe bars. |
+| Sound | The "Sound" button, then the Mixer. It must be a click; browsers insist. |
 
 ## How the hall works
 
-- **Coblynau** dig what you mark. Gold seams pay 25. They flee heroes, gather the gold dead heroes drop, and are replaced from the Portal while fewer than three remain.
-- **Creatures** arrive through the Portal every 7 seconds if the rooms are right: a **Cŵn Annwn** wants a Lair of 4 and a Hatchery of 2; a **Pwca** wants a Lair of 2 and a Treasury of 2; the **Afanc** wants a Lair of 9, a Treasury of 4 and 300 gold in hand. They eat, sleep, and rush any mortal within seven tiles. Starve them and they leave.
-- **Mortals** come through the Gate on the far right: the first wave at 40 seconds, then every 55. Wave n brings 1+n of them, and from the second wave every second one is a Hedge-Priest who heals knights. They walk to the Heart, tunnelling through rock at a quarter speed if you give them no corridor.
-- **Win** by clearing the third wave. **Lose** when the Heart's 100 points reach zero.
+- **Coblynau** dig what you mark. Gold seams leave a 25-gold pile that a Coblyn carries to a Treasury with room; gold on the floor is not yours, and a mortal who walks over it pockets it. They build traps, flee heroes, and are replaced from the Portal while fewer than three remain.
+- **Denizens** arrive through the Portal every 7 seconds if the rooms are right (and the level allows them): **Cŵn Annwn** (Lair 4, Hatchery 2), **Pwca** (Lair 2, Treasury 2), **Gwyllgi** (Lair 6, Treasury 3), **Ceffyl Dŵr** (Pool 3, Lair 4), **Afanc** (Lair 9, Treasury 4, 300 gold), and the **Tylwyth Teg emissary** when the vault holds 150, with terms. Room sizes are the largest contiguous region. They eat, sleep, squabble with creatures they dislike, draw wages on payday, and rush mortals. Starve or stiff them and they leave.
+- **Mortals** come through the Gates on the level's schedule: knights, priests who heal, the Cantref Lord who hunts your strongest creature, levies who break when the first dies, and the reliquary bearer near whom nothing of yours will fight. They have nerve; lose it and they run for the Gate. They tunnel through rock at a quarter speed if you give them no corridor.
+- **Engines**: a pit, a boulder for a straight corridor, a cold iron snare. One use each.
+- **Win** by clearing the schedule, or on the last level by holding until the Hunt returns. **Lose** when the Heart's 100 points reach zero.
 
 ## Layout
 
 ```
-src/sim/      pure game logic, no DOM, covered by Vitest (incl. a scripted steward for balance)
-src/render/   canvas drawing, sprite sheet + rectangle fallback (drawBeast), coloured light map
-src/ui/       HUD, toolbar, log, manual panel, overlay, audio and mixer
-src/data/     bestiary.ts (every creature, engine and trade in one typed object), waves.ts
-art/          figures.json: the sprite source; scripts/build-sprites.mjs renders the sheet
-docs/         backlog.md, balance.md
+src/sim/      pure game logic, no DOM, covered by Vitest (incl. a scripted steward, save/load, sandbox)
+src/render/   canvas drawing, sprite sheet + rectangle fallback (drawBeast), autotiles, coloured light map
+src/ui/       title, briefing, HUD, toolbar, log, manual panel, overlay, editor, settings, audio and mixer
+src/data/     bestiary.ts (every creature, engine and trade), waves.ts, levels.ts (the campaign), rooms.ts
+art/          figures.json: the sprite source; scripts/ renders the sheet, the manual, the box, the release
+src-tauri/    the desktop wrapper
+docs/         backlog, balance, performance, desktop, itch page, box art, devlog drafts
 src/main.ts   wiring and the game loop
 ```
 
@@ -66,10 +80,17 @@ below the toolbar has master, ambient and effects sliders. Hounds bay when
 they take up a chase, quieter the closer they are; picks ring on stone;
 the Heart tolls when struck; mortal footsteps are louder in open halls.
 
+## Status
+
+The backlog in `docs/backlog.md` (milestones M0–M7, tracked as GitHub
+issues) is implemented. What could not be done from a build container is
+noted in the docs: desktop bundles need the platform toolchains in
+`docs/desktop.md`, the itch.io upload needs butler and credentials, and the
+sprite sheet is generated from `art/figures.json` rather than drawn by hand.
+
 ## Next
 
-The backlog lives in `docs/backlog.md` and as GitHub issues with milestones.
-Remaining after M4: the printable manual and reference card, the box mock,
-the title screen, the campaign and level format, save/load, the sandbox
-editor, the Tauri wrapper, profiling, accessibility, the itch.io page and
-the devlog.
+- Hand-drawn sprites and tiles in the same sheet layout.
+- Tile-layer caching if the F3 overlay shows tiles over budget on your machine.
+- A grace period after a cleared wave, per `docs/balance.md`.
+- Playtesting by humans, which no bot replaces.
