@@ -16,7 +16,8 @@
     "bench": "vitest run --config vitest.bench.config.ts",
     "sprites": "node scripts/build-sprites.mjs",
     "box": "node scripts/build-box.mjs",
-    "manual": "node --experimental-strip-types scripts/build-manual.mjs"
+    "manual": "node --experimental-strip-types scripts/build-manual.mjs",
+    "release": "node scripts/release.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

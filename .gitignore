@@ -7,3 +7,6 @@ dist/
 coverage/
 .claude/worktrees/
 docs/box/box.pdf
+src-tauri/target/
+src-tauri/gen/schemas/
+release/

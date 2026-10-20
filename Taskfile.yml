@@ -46,6 +46,34 @@ tasks:
     sources: [src/data/*.ts, art/figures.json, scripts/build-manual.mjs]
     generates: [dist/manual.pdf, dist/reference-card.pdf]
 
+  desktop:
+    desc: Build desktop bundles for the current platform with Tauri (see docs/desktop.md)
+    cmds:
+      - npm run build
+      - |
+        if cargo tauri --version >/dev/null 2>&1; then
+          cargo tauri build
+        else
+          echo 'tauri-cli is not installed. Run: cargo install tauri-cli --version "^2"'
+          exit 1
+        fi
+
+  desktop:dev:
+    desc: Run the desktop app against the Vite dev server
+    cmds:
+      - |
+        if cargo tauri --version >/dev/null 2>&1; then
+          cargo tauri dev
+        else
+          echo 'tauri-cli is not installed. Run: cargo install tauri-cli --version "^2"'
+          exit 1
+        fi
+
+  release:
+    desc: Build, zip and upload the web build and downloads to itch.io via butler
+    cmds:
+      - node scripts/release.mjs
+
   bench:
     desc: Performance budgets (pathfinding) without coverage instrumentation
     deps: [install]
