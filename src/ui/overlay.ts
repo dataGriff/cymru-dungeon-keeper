@@ -17,18 +17,21 @@ export type OverlayMode = 'hidden' | 'won' | 'lost' | 'paused' | 'confirm';
 export interface Overlay {
   root: HTMLElement;
   mode: OverlayMode;
-  show(status: Status): void;
+  /** `next` is the label of a second button (e.g. the next level), if any. */
+  show(status: Status, next?: { label: string; onNext: () => void }): void;
   pause(): void;
   confirmRestart(): void;
   hide(): void;
 }
 
-export function createOverlay(handlers: { onRestart: () => void; onResume: () => void }): Overlay {
+export function createOverlay(handlers: { onRestart: () => void; onResume: () => void; onTitle: () => void }): Overlay {
   const title = el('h2', { className: 'overlay-title' });
   const body = el('p', { className: 'overlay-body' });
   const primary = el('button', { className: 'overlay-button' });
   const secondary = el('button', { className: 'overlay-button overlay-secondary' });
-  const buttons = el('div', { className: 'overlay-buttons' }, [primary, secondary]);
+  const toTitle = el('button', { className: 'overlay-button overlay-secondary', text: 'Back to the title' });
+  toTitle.addEventListener('click', handlers.onTitle);
+  const buttons = el('div', { className: 'overlay-buttons' }, [primary, secondary, toTitle]);
   const card = el('div', { className: 'overlay-card' }, [title, body, buttons]);
   card.setAttribute('role', 'dialog');
   card.setAttribute('aria-modal', 'true');
@@ -39,7 +42,7 @@ export function createOverlay(handlers: { onRestart: () => void; onResume: () =>
   const overlay: Overlay = {
     root,
     mode: 'hidden',
-    show(status) {
+    show(status, next) {
       if (status === 'playing') {
         overlay.hide();
         return;
@@ -48,9 +51,18 @@ export function createOverlay(handlers: { onRestart: () => void; onResume: () =>
       root.classList.remove('overlay-pause');
       title.textContent = TEXT[status].title;
       body.textContent = TEXT[status].body;
-      primary.textContent = 'Take up the keys again';
-      primary.onclick = handlers.onRestart;
-      secondary.classList.add('hidden');
+      toTitle.classList.remove('hidden');
+      if (next) {
+        primary.textContent = next.label;
+        primary.onclick = next.onNext;
+        secondary.textContent = 'Play this hall again';
+        secondary.onclick = handlers.onRestart;
+        secondary.classList.remove('hidden');
+      } else {
+        primary.textContent = 'Take up the keys again';
+        primary.onclick = handlers.onRestart;
+        secondary.classList.add('hidden');
+      }
       root.classList.toggle('overlay-lost', status === 'lost');
       root.classList.remove('hidden');
       primary.focus();
@@ -62,6 +74,7 @@ export function createOverlay(handlers: { onRestart: () => void; onResume: () =>
       primary.textContent = 'Resume (Space)';
       primary.onclick = handlers.onResume;
       secondary.classList.add('hidden');
+      toTitle.classList.add('hidden');
       root.classList.remove('overlay-lost');
       root.classList.add('overlay-pause');
       root.classList.remove('hidden');
@@ -76,6 +89,7 @@ export function createOverlay(handlers: { onRestart: () => void; onResume: () =>
       secondary.textContent = 'Keep going';
       secondary.onclick = handlers.onResume;
       secondary.classList.remove('hidden');
+      toTitle.classList.add('hidden');
       root.classList.remove('overlay-lost');
       root.classList.remove('hidden');
       secondary.focus();

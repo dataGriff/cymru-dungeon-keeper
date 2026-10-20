@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ARRIVAL_INTERVAL, chooseArrival, countKind, createGame, removeEntity, spawn } from './game';
+import { ALL_DENIZENS, THE_CAIRN } from '../data/levels';
 import { PORTAL_POS, type RoomTile, Tile, setTile } from './grid';
 import { tick } from './index';
 
@@ -45,7 +46,7 @@ describe('arrival rules', () => {
   });
 
   it('Pwca needs Lair ≥ 2 and Treasury ≥ 2, capped at two', () => {
-    const s = createGame(4);
+    const s = createGame(4, undefined, { ...THE_CAIRN, allowed: ALL_DENIZENS });
     build(s, Tile.Lair, 2);
     build(s, Tile.Treasury, 1, 6, 5);
     expect(chooseArrival(s)).toBeNull();
@@ -57,7 +58,7 @@ describe('arrival rules', () => {
   });
 
   it('Afanc needs Lair ≥ 9, Treasury ≥ 4 and 300 gold, only one ever', () => {
-    const s = createGame(5);
+    const s = createGame(5, undefined, { ...THE_CAIRN, allowed: ALL_DENIZENS });
     build(s, Tile.Lair, 9);
     build(s, Tile.Treasury, 4, 6, 5);
     spawn(s, 'pwca', PORTAL_POS);

@@ -127,6 +127,7 @@ export function drawBoard(
   hover: Vec | null,
   alpha = 1,
   selectedId: number | null = null,
+  lit = true,
 ): void {
   const { ctx } = view;
   const g = s.grid;
@@ -164,7 +165,7 @@ export function drawBoard(
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
-  drawLighting(ctx, view.light, g, s.entities, t, view.lighting);
+  if (lit) drawLighting(ctx, view.light, g, s.entities, t, { ...view.lighting, hunt: s.hunt });
   // The steward's own marks stay legible in the dark: redraw them over the lighting.
   ctx.strokeStyle = P.mark;
   ctx.globalAlpha = 0.7;

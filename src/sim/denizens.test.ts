@@ -13,6 +13,7 @@ import {
   trade,
   warded,
 } from './game';
+import { ALL_DENIZENS, THE_CAIRN } from '../data/levels';
 import { GATE_POS, PORTAL_POS, type RoomTile, Tile, isCorridor, setTile } from './grid';
 import { tick } from './index';
 import { FIRST_WAVE_AT } from './waves';
@@ -22,8 +23,10 @@ function strip(s: ReturnType<typeof createGame>, room: RoomTile, n: number, x0: 
 }
 
 describe('new denizens arrive on their own terms', () => {
+  const ALL = { ...THE_CAIRN, allowed: ALL_DENIZENS };
+
   it('Gwyllgi wants a Lair of 6 and a Treasury of 3, two at most', () => {
-    const s = createGame(60);
+    const s = createGame(60, undefined, ALL);
     strip(s, Tile.Lair, 6, 6, 1);
     strip(s, Tile.Treasury, 2, 6, 3);
     strip(s, Tile.Hatchery, 2, 6, 5);
@@ -39,7 +42,7 @@ describe('new denizens arrive on their own terms', () => {
   });
 
   it('Ceffyl Dŵr wants a Pool of 3 and a Lair of 4, one only', () => {
-    const s = createGame(61);
+    const s = createGame(61, undefined, ALL);
     strip(s, Tile.Lair, 4, 6, 1);
     strip(s, Tile.Pool, 2, 6, 3);
     expect(chooseArrival(s)).toBeNull();

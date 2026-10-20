@@ -25,6 +25,7 @@ import {
   digTile,
   dropGold,
   emit,
+  heartOf,
   heroFlees,
   offendEmissary,
   removeEntity,
@@ -35,7 +36,6 @@ import {
   tunnelTile,
 } from './game';
 import {
-  HEART_POS,
   Tile,
   type Vec,
   dist,
@@ -616,7 +616,7 @@ export function updateHero(s: GameState, e: Entity, dt: number): void {
   morale(s, e, dt);
   if (e.morale <= 0) {
     // Run for the nearest Gate and leave with whatever is in hand.
-    let gate = s.gates[0] ?? HEART_POS;
+    let gate = s.gates[0] ?? heartOf(s);
     let best = Infinity;
     for (const g of s.gates) {
       const d = distBetween(e, g);
@@ -673,7 +673,8 @@ export function updateHero(s: GameState, e: Entity, dt: number): void {
       return;
     }
   }
-  if (distBetween(e, HEART_POS) <= REACH) {
+  const heart = heartOf(s);
+  if (distBetween(e, heart) <= REACH) {
     e.task = 'strike';
     e.path = [];
     if (e.cooldown <= 0 && attackOf(e) > 0) {
@@ -685,7 +686,7 @@ export function updateHero(s: GameState, e: Entity, dt: number): void {
   if (e.task !== 'toHeart' || e.path.length === 0 || e.repath <= 0) {
     e.task = 'toHeart';
     e.repath = 1.5;
-    if (setPath(s, e, HEART_POS, 'hero')) e.path.pop();
+    if (setPath(s, e, heart, 'hero')) e.path.pop();
   }
   walk(s, e, dt);
 }

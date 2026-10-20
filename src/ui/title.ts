@@ -31,10 +31,23 @@ export const CREDITS = [
   'No knight was harmed that did not have it coming.',
 ];
 
+export type TitleChoice =
+  | { mode: 'campaign'; index: number }
+  | { mode: 'sandbox'; seed: number }
+  | { mode: 'editor' }
+  | { mode: 'load' };
+
+export interface TitleMenu {
+  /** Furthest campaign level reached, 0-based. */
+  progress: number;
+  levels: { name: string; lesson: string }[];
+  hasSave: string | null;
+}
+
 export interface TitleScreen {
   root: HTMLElement;
-  /** Resolves when the player has pressed a key and any install is done. */
-  wait(): Promise<void>;
+  /** Resolves with the player's choice once any install is done. */
+  wait(): Promise<TitleChoice>;
 }
 
 const read = (k: string): string | null => {
@@ -52,12 +65,53 @@ const write = (k: string, v: string): void => {
   }
 };
 
-export function createTitleScreen(artUrl: string): TitleScreen {
+export function createTitleScreen(artUrl: string, menu: TitleMenu): TitleScreen {
+  let choice: TitleChoice = { mode: 'campaign', index: menu.progress };
   const art = el('img', { className: 'title-art' });
   art.src = artUrl;
   art.alt = 'Steward of Annwn. A white hound with red ears faces a small knight beneath a cairn.';
-  const press = el('p', { className: 'title-press', text: 'Press any key' });
+  const press = el('p', { className: 'title-press', text: menu.progress > 0 ? `Press any key · continue at level ${menu.progress + 1}` : 'Press any key' });
   const creditsBtn = el('button', { className: 'title-button', text: 'Credits' });
+  // The menu: pick a level, a sandbox seed, the editor, or the saved game.
+  const levelButtons = menu.levels.map((l, i) => {
+    const locked = i > menu.progress;
+    const b = el('button', { className: 'title-level', text: `${i + 1}. ${l.name}`, title: locked ? 'Not yet reached' : l.lesson });
+    b.disabled = locked;
+    b.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      choice = { mode: 'campaign', index: i };
+      pick();
+    });
+    return b;
+  });
+  const seedInput = el('input');
+  seedInput.type = 'number';
+  seedInput.value = String(Math.floor(Math.random() * 100000));
+  seedInput.setAttribute('aria-label', 'Sandbox seed');
+  const sandboxBtn = el('button', { className: 'title-level', text: 'Sandbox' });
+  sandboxBtn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    choice = { mode: 'sandbox', seed: Number(seedInput.value) || 1 };
+    pick();
+  });
+  const editorBtn = el('button', { className: 'title-level', text: 'Editor' });
+  editorBtn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    choice = { mode: 'editor' };
+    pick();
+  });
+  const loadBtn = el('button', { className: 'title-level', text: menu.hasSave ? `Load save (${menu.hasSave})` : 'No saved game' });
+  loadBtn.disabled = !menu.hasSave;
+  loadBtn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    choice = { mode: 'load' };
+    pick();
+  });
+  const menuEl = el('div', { className: 'title-menu' }, [
+    el('div', { className: 'title-menu-group', text: 'Campaign' }, levelButtons),
+    el('div', { className: 'title-menu-group', text: 'Free play' }, [el('span', { className: 'title-seed' }, ['Seed ', seedInput]), sandboxBtn, editorBtn, loadBtn]),
+  ]);
+  let pick: () => void = () => {};
   const noInstall = el('input');
   noInstall.type = 'checkbox';
   noInstall.checked = read(NO_INSTALL_KEY) === '1';
@@ -69,7 +123,7 @@ export function createTitleScreen(artUrl: string): TitleScreen {
     el('p', { className: 'title-credits-foot', text: 'Press any key to close.' }),
   ]);
   const install = el('pre', { className: 'title-install hidden' });
-  const card = el('div', { className: 'title-card' }, [art, press, el('div', { className: 'title-row' }, [creditsBtn, options]), credits, install]);
+  const card = el('div', { className: 'title-card' }, [art, press, menuEl, el('div', { className: 'title-row' }, [creditsBtn, options]), credits, install]);
   const root = el('div', { className: 'title' }, [card]);
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-label', 'Title screen');
@@ -82,13 +136,18 @@ export function createTitleScreen(artUrl: string): TitleScreen {
     creditsBtn.blur(); // so Enter/Space go to "any key", not back to this button
   });
 
-  /** Any key or click (not on the controls) counts. */
+  /** Any key or click (not on the controls) counts; the menu buttons count through pick(). */
   const anyKey = (): Promise<void> =>
     new Promise((resolve) => {
+      pick = () => {
+        window.removeEventListener('keydown', done);
+        root.removeEventListener('pointerdown', done);
+        resolve();
+      };
       const done = (ev: Event): void => {
         if (ev instanceof KeyboardEvent && (ev.key === 'Tab' || ev.key === 'Shift' || ev.key === 'Control' || ev.key === 'Alt' || ev.key === 'Meta')) return;
         if (ev instanceof KeyboardEvent && (ev.target instanceof HTMLButtonElement || ev.target instanceof HTMLInputElement)) return;
-        if (ev instanceof MouseEvent && (ev.target as HTMLElement).closest('.title-row, .title-credits')) return;
+        if (ev instanceof MouseEvent && (ev.target as HTMLElement).closest('.title-row, .title-credits, .title-menu')) return;
         if (showingCredits) {
           showingCredits = false;
           credits.classList.add('hidden');
@@ -152,6 +211,7 @@ export function createTitleScreen(artUrl: string): TitleScreen {
       root.classList.add('title-leaving');
       await new Promise((r) => setTimeout(r, 350));
       root.remove();
+      return choice;
     },
   };
 }

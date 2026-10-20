@@ -26,6 +26,8 @@ interface Light {
 export interface LightingOptions {
   /** Disable flicker (prefers-reduced-motion). */
   reducedMotion: boolean;
+  /** The Hunt has returned: every torch burns white and the ambient goes cold. */
+  hunt?: boolean;
 }
 
 function collectLights(g: Grid, entities: readonly Entity[]): Light[] {
@@ -82,7 +84,7 @@ export function drawLighting(
   const h = g.h * TILE;
   const k = LIGHTMAP_SCALE;
   map.globalCompositeOperation = 'source-over';
-  map.fillStyle = AMBIENT;
+  map.fillStyle = opts.hunt ? 'rgb(70, 84, 110)' : AMBIENT;
   map.fillRect(0, 0, map.canvas.width, map.canvas.height);
   map.globalCompositeOperation = 'lighter';
   for (const l of collectLights(g, entities)) {
@@ -93,8 +95,9 @@ export function drawLighting(
     const x = l.x * k;
     const y = l.y * k;
     const grad = map.createRadialGradient(x, y, 0, x, y, r);
-    grad.addColorStop(0, l.color);
-    grad.addColorStop(0.45, l.color.replace(/[\d.]+\)$/, '0.55)'));
+    const color = opts.hunt ? 'rgba(230, 240, 255, 0.95)' : l.color;
+    grad.addColorStop(0, color);
+    grad.addColorStop(0.45, color.replace(/[\d.]+\)$/, '0.55)'));
     grad.addColorStop(1, 'rgba(0,0,0,0)');
     map.fillStyle = grad;
     map.fillRect(x - r, y - r, r * 2, r * 2);

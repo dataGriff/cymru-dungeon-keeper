@@ -55,11 +55,14 @@ export function createHud(): Hud {
       wave.textContent = `Wave ${s.wave}/${finalWave(s)}`;
       creatures.textContent = `Creatures ${s.entities.filter(isCreature).length}`;
       tally.textContent = s.slain + s.fled > 0 ? `Slain ${s.slain} · Fled ${s.fled}` : '';
-      clock.textContent = paused ? 'Paused' : speed === 1 ? '' : `${speed}×`;
+      clock.textContent = (paused ? 'Paused ' : speed === 1 ? '' : `${speed}× `) + (s.level.id.startsWith('sandbox') ? `· seed ${s.seed}` : `· ${s.level.name}`);
       const mortals = heroCount(s) + s.pendingHeroes.length;
       if (mortals > 0) {
         status.textContent = `Mortals in the hall: ${mortals}`;
         status.classList.add('hud-danger');
+      } else if (s.level.win.kind === 'hunt' && s.wave >= finalWave(s)) {
+        status.textContent = s.hunt ? 'The Hunt is here.' : `The Hunt returns in ${Math.max(0, Math.ceil(s.level.win.at - s.time))}s`;
+        status.classList.remove('hud-danger');
       } else if (s.wave < finalWave(s)) {
         status.textContent = `Next wave ${Math.max(0, Math.ceil(s.nextWaveAt - s.time))}s`;
         status.classList.remove('hud-danger');

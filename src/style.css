@@ -682,3 +682,112 @@ canvas.board {
   white-space: pre-wrap;
   border: 4px double #e8e8e8;
 }
+
+/* ---------- M6: title menu, briefing, editor, saves ---------- */
+.title-menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 18px;
+  width: 100%;
+  font-family: var(--font-hud);
+  font-size: 18px;
+  color: var(--bone-dim);
+}
+@media (max-width: 480px) {
+  .title-menu {
+    grid-template-columns: 1fr;
+  }
+}
+.title-menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  letter-spacing: 0.06em;
+}
+.title-level {
+  font-family: var(--font-hud);
+  font-size: 18px;
+  text-align: left;
+  padding: 4px 10px 3px;
+  color: var(--bone);
+  background: var(--bg-2);
+  border: 1px solid #3a2f4a;
+}
+.title-level:hover:not(:disabled) {
+  border-color: var(--ember);
+  color: var(--ember);
+}
+.title-level:disabled {
+  color: #5a5060;
+  cursor: not-allowed;
+}
+.title-seed input {
+  width: 90px;
+  font-family: var(--font-hud);
+  font-size: 17px;
+  background: var(--bg-2);
+  color: var(--bone);
+  border: 1px solid #3a2f4a;
+}
+.briefing-card {
+  max-width: 520px;
+  text-align: left;
+}
+.briefing-kicker {
+  font-family: var(--font-hud);
+  font-size: 18px;
+  color: var(--ember);
+}
+.briefing-body {
+  color: var(--bone);
+}
+.editor {
+  max-width: 672px;
+  margin: 10px 0 8px;
+  font-family: var(--font-hud);
+  font-size: 18px;
+  color: var(--bone-dim);
+}
+.editor-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.editor input,
+.editor textarea {
+  font-family: var(--font-hud);
+  font-size: 17px;
+  background: var(--bg-2);
+  color: var(--bone);
+  border: 1px solid #3a2f4a;
+  padding: 2px 6px;
+}
+.editor textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+.editor-brief {
+  display: block;
+  margin-bottom: 6px;
+}
+.editor-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.editor-status {
+  margin: 4px 0 0;
+  color: var(--ember);
+}
+.saves {
+  margin-top: 0;
+}
+.save-note {
+  font-family: var(--font-hud);
+  font-size: 18px;
+  color: var(--bone-dim);
+  align-self: center;
+}

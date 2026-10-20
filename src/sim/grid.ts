@@ -150,6 +150,45 @@ export function regionSizeAt(g: Grid, x: number, y: number, t: Tile): number {
   return 0;
 }
 
+const LEGEND_TILE: Record<string, Tile> = {
+  '#': Tile.Rock,
+  '*': Tile.Gold,
+  '.': Tile.Floor,
+  H: Tile.Heart,
+  P: Tile.Portal,
+  G: Tile.Gate,
+  L: Tile.Lair,
+  F: Tile.Hatchery,
+  T: Tile.Treasury,
+  W: Tile.Pool,
+};
+const TILE_LEGEND: Record<Tile, string> = Object.fromEntries(Object.entries(LEGEND_TILE).map(([k, v]) => [v, k])) as Record<Tile, string>;
+
+/** Build a grid from ASCII rows (see src/data/levels.ts for the legend), sprinkling seams into plain rock. */
+export function gridFromRows(rows: readonly string[], goldFraction: number, rng: Rng): Grid {
+  const h = rows.length;
+  const w = rows[0]?.length ?? 0;
+  const g = createGrid(w, h);
+  rows.forEach((row, y) => {
+    for (let x = 0; x < w; x++) {
+      const t = LEGEND_TILE[row[x] ?? '#'] ?? Tile.Rock;
+      setTile(g, x, y, t === Tile.Rock && goldFraction > 0 && rng() < goldFraction ? Tile.Gold : t);
+    }
+  });
+  return g;
+}
+
+/** The inverse: a grid as ASCII rows, for the editor's export. */
+export function rowsFromGrid(g: Grid): string[] {
+  const rows: string[] = [];
+  for (let y = 0; y < g.h; y++) {
+    let row = '';
+    for (let x = 0; x < g.w; x++) row += TILE_LEGEND[tileAt(g, x, y)] ?? '#';
+    rows.push(row);
+  }
+  return rows;
+}
+
 /**
  * The starting hall: a 5x5 dug chamber on the left with the Heart in the centre
  * and the Portal in its corner; the Gate on the far right with one floor tile

@@ -10,14 +10,14 @@ import {
   type TradeKind,
   WARD_SECONDS,
 } from '../data/bestiary';
-import { CAIRN, type WaveSchedule } from '../data/waves';
+import { type Level, THE_CAIRN } from '../data/levels';
+import type { WaveSchedule } from '../data/waves';
 import {
   GOLD_SEAM_PAYOUT,
   HEART_HP,
   FIRST_PAYDAY,
   PAY_INTERVAL,
   ROOM_COST,
-  STARTING_GOLD,
   TREASURY_BASE_CAPACITY,
   TREASURY_REGION_BONUS,
   UNPAID_TOLERANCE,
@@ -32,8 +32,8 @@ import {
   type RoomTile,
   Tile,
   type Vec,
-  createStartGrid,
   gatesOf,
+  gridFromRows,
   inBounds,
   isCorridor,
   isMarked,
@@ -45,6 +45,7 @@ import {
   setMarked,
   setTile,
   tileAt,
+  tilesOf,
 } from './grid';
 import { type Rng, mulberry32 } from './rng';
 import { WAVE_STAGGER } from './waves';
@@ -98,6 +99,8 @@ export interface GameState {
   entities: Entity[];
   /** Loose gold on the floor, waiting for a Coblyn (or a thief). */
   drops: Drop[];
+  /** The level being played (its schedule is also kept on `schedule`). */
+  level: Level;
   /** The level's waves. */
   schedule: WaveSchedule;
   /** Every Gate on the map; wave specs index into it. */
@@ -140,6 +143,10 @@ export interface GameState {
   corpses: { kind: BeastKind; x: number; y: number; facing: -1 | 1; t: number }[];
   /** Events since the consumer last drained them (see takeEvents). */
   events: SimEvent[];
+  /** The seed this hall was dug with. */
+  seed: number;
+  /** The Hunt has returned: the hounds are Arawn's and the mortals are prey. */
+  hunt: boolean;
 }
 
 export const ARRIVAL_INTERVAL = 7;
@@ -148,17 +155,26 @@ export const MAX_MAP_CHANGES = 64;
 
 export const finalWave = (s: GameState): number => s.schedule.waves.length;
 
-export function createGame(seed = Date.now() & 0xffffffff, pages: Pages = freshPages(), schedule: WaveSchedule = CAIRN): GameState {
+/**
+ * A new hall. The default level is the Cairn; a schedule may be passed on
+ * its own for tests. Pages carry bestiary unlocks across games.
+ */
+export function createGame(seed = Date.now() & 0xffffffff, pages: Pages = freshPages(), levelOrSchedule: Level | WaveSchedule = THE_CAIRN): GameState {
+  const level: Level = 'rows' in levelOrSchedule ? levelOrSchedule : { ...THE_CAIRN, schedule: levelOrSchedule };
+  const schedule = level.schedule;
   const rng = mulberry32(seed);
-  const grid = createStartGrid(rng);
+  const grid = gridFromRows(level.rows, level.goldFraction, rng);
   const s: GameState = {
     grid,
     gates: gatesOf(grid),
+    level,
     schedule,
     rng,
+    seed,
+    hunt: false,
     time: 0,
-    gold: STARTING_GOLD,
-    purse: STARTING_GOLD,
+    gold: level.startGold,
+    purse: level.startGold,
     heartHp: HEART_HP,
     status: 'playing',
     entities: [],
@@ -187,17 +203,21 @@ export function createGame(seed = Date.now() & 0xffffffff, pages: Pages = freshP
     corpses: [],
     events: [],
   };
-  // Three Coblynau are already at work when the steward takes the keys.
-  for (const at of [
-    { x: 2, y: 7 },
-    { x: 4, y: 9 },
-    { x: 2, y: 10 },
-  ]) {
-    spawn(s, 'coblyn', at);
-  }
+  // Three Coblynau are already at work when the steward takes the keys: on floor near the Heart.
+  const heart = tilesOf(grid, Tile.Heart)[0] ?? HEART_POS;
+  const spots = tilesOf(grid, Tile.Floor)
+    .map((p) => ({ p, d: Math.hypot(p.x - heart.x, p.y - heart.y) }))
+    .sort((a, b) => a.d - b.d)
+    .map((x) => x.p);
+  for (let i = 0; i < 3; i++) spawn(s, 'coblyn', spots[Math.min(spots.length - 1, i * 2)] ?? heart);
   addLog(s, 'Arawn rides with the Hunt. The hall is yours to keep until he returns.');
   return s;
 }
+
+/** Where the Heart stands on this map. */
+export const heartOf = (s: GameState): Vec => tilesOf(s.grid, Tile.Heart)[0] ?? HEART_POS;
+/** Where the Portal is on this map. */
+export const portalOf = (s: GameState): Vec => tilesOf(s.grid, Tile.Portal)[0] ?? PORTAL_POS;
 
 export function addLog(s: GameState, text: string): void {
   s.log.push({ t: s.time, text });
@@ -506,13 +526,14 @@ export function chooseArrival(s: GameState): BeastKind | null {
   const hatchery = roomSize(s, Tile.Hatchery);
   const treasury = roomSize(s, Tile.Treasury);
   const pool = roomSize(s, Tile.Pool);
+  const ok = (k: BeastKind): boolean => s.level.allowed.includes(k);
   if (countKind(s, 'coblyn') < 3) return 'coblyn';
-  if (lair >= 4 && hatchery >= 2 && countKind(s, 'cwn') < 3) return 'cwn';
-  if (lair >= 2 && treasury >= 2 && countKind(s, 'pwca') < 2) return 'pwca';
-  if (lair >= 6 && treasury >= 3 && countKind(s, 'gwyllgi') < 2) return 'gwyllgi';
-  if (pool >= 3 && lair >= 4 && countKind(s, 'ceffyl') < 1) return 'ceffyl';
-  if (lair >= 9 && treasury >= 4 && s.gold >= 300 && countKind(s, 'afanc') < 1) return 'afanc';
-  if (vaultGold(s) >= TEG_VAULT_THRESHOLD && s.tegCooldown <= 0 && countKind(s, 'teg') < 1) return 'teg';
+  if (ok('cwn') && lair >= 4 && hatchery >= 2 && countKind(s, 'cwn') < 3) return 'cwn';
+  if (ok('pwca') && lair >= 2 && treasury >= 2 && countKind(s, 'pwca') < 2) return 'pwca';
+  if (ok('gwyllgi') && lair >= 6 && treasury >= 3 && countKind(s, 'gwyllgi') < 2) return 'gwyllgi';
+  if (ok('ceffyl') && pool >= 3 && lair >= 4 && countKind(s, 'ceffyl') < 1) return 'ceffyl';
+  if (ok('afanc') && lair >= 9 && treasury >= 4 && s.gold >= 300 && countKind(s, 'afanc') < 1) return 'afanc';
+  if (ok('teg') && vaultGold(s) >= TEG_VAULT_THRESHOLD && s.tegCooldown <= 0 && countKind(s, 'teg') < 1) return 'teg';
   return null;
 }
 
@@ -522,7 +543,7 @@ function tickArrivals(s: GameState, dt: number): void {
   s.arrivalTimer += ARRIVAL_INTERVAL;
   const kind = chooseArrival(s);
   if (!kind) return;
-  const e = spawn(s, kind, PORTAL_POS);
+  const e = spawn(s, kind, portalOf(s));
   if (kind === 'teg') e.stay = TEG_STAY;
   emit(s, { kind: 'arrive', beast: kind });
   addLog(s, ARRIVAL_LOG[kind]);
@@ -599,6 +620,30 @@ function tickWaves(s: GameState, dt: number): void {
   }
 }
 
+export const HUNT_HOUNDS_PER_GATE = 4;
+
+/**
+ * The Hunt returns. Horns on the stair, the lights go cold, every mortal's
+ * nerve breaks, and Arawn's own hounds come down through every Gate.
+ */
+function tickHunt(s: GameState): void {
+  if (s.hunt || s.level.win.kind !== 'hunt' || s.time < s.level.win.at) return;
+  s.hunt = true;
+  s.pendingHeroes = [];
+  addLog(s, 'Horns on the stair. Not mortal horns.');
+  addLog(s, 'The torches go white. Arawn is home, and the Hunt is with him.');
+  for (const e of s.entities) if (isHero(e)) e.morale = 0;
+  for (const gate of s.gates) {
+    for (let i = 0; i < HUNT_HOUNDS_PER_GATE; i++) {
+      const hound = spawn(s, 'cwn', gate);
+      hound.hunger = -1e9; // the Hunt's hounds want for nothing
+      hound.sleep = -1e9;
+    }
+  }
+  addLog(s, 'The hounds of Annwn pour down the stair. Stand aside and let them work.');
+  emit(s, { kind: 'wave', n: finalWave(s) + 1 });
+}
+
 /** A wave is cleared when nothing mortal is left in the hall or on the stair. */
 function checkWaveCleared(s: GameState): void {
   if (!s.waveActive || s.pendingHeroes.length > 0 || heroCount(s) > 0) return;
@@ -610,6 +655,10 @@ function checkWaveCleared(s: GameState): void {
 function checkEnd(s: GameState): void {
   if (s.heartHp <= 0) {
     s.status = 'lost';
+    return;
+  }
+  if (s.level.win.kind === 'hunt') {
+    if (s.hunt && heroCount(s) === 0) s.status = 'won';
     return;
   }
   if (s.wave >= finalWave(s) && s.pendingHeroes.length === 0 && heroCount(s) === 0) s.status = 'won';
@@ -723,6 +772,7 @@ export function step(s: GameState, dt: number, update: EntityUpdater): void {
   tickArrivals(s, dt);
   tickWages(s, dt);
   tickWaves(s, dt);
+  tickHunt(s);
   tickBoulders(s, dt);
   for (const e of [...s.entities]) {
     if (!s.entities.includes(e)) continue;
@@ -740,3 +790,4 @@ export function step(s: GameState, dt: number, update: EntityUpdater): void {
 }
 
 export { HEART_POS, PORTAL_POS, GATE_POS };
+export type { Level };
