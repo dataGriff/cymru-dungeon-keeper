@@ -80,6 +80,8 @@ button {
   gap: 4px 18px;
   padding: 6px 10px;
   margin-bottom: 8px;
+  /* Two lines reserved so a longer readout never shifts the board. */
+  min-height: calc(2 * 22px + 4px + 12px);
   font-family: var(--font-hud);
   font-size: 22px;
   line-height: 1;
@@ -357,4 +359,68 @@ canvas.board {
   font-style: italic;
   font-size: 13.5px;
   color: var(--ink-soft);
+}
+
+/* ---------- M1 additions ---------- */
+
+.hidden {
+  display: none !important;
+}
+.overlay-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.overlay-secondary {
+  color: var(--bone-dim);
+  border-color: #3a2f4a;
+}
+.hud-clock {
+  color: var(--ember);
+}
+.tool-speed {
+  padding-inline: 9px;
+}
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+  padding: 3px 8px 2px;
+  font-family: var(--font-hud);
+  font-size: 17px;
+  line-height: 1.1;
+  color: var(--bone);
+  background: rgba(11, 8, 18, 0.92);
+  border: 1px solid var(--ember-dim);
+  white-space: nowrap;
+}
+
+/* Pausing shows a banner, not a wall: the steward can still plan. */
+.overlay.overlay-pause {
+  align-items: flex-start;
+  background: transparent;
+  pointer-events: none;
+  padding: 10px;
+}
+.overlay.overlay-pause .overlay-card {
+  pointer-events: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  max-width: none;
+  padding: 8px 14px;
+  text-align: left;
+  background: rgba(18, 13, 28, 0.92);
+}
+.overlay.overlay-pause .overlay-title {
+  font-size: 18px;
+  margin: 0;
+}
+.overlay.overlay-pause .overlay-body {
+  display: none;
+}
+.overlay.overlay-pause .overlay-button {
+  font-size: 18px;
+  padding: 4px 10px 3px;
 }

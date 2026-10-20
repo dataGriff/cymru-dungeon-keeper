@@ -94,6 +94,50 @@ export function markedTiles(g: Grid): Vec[] {
 }
 
 /**
+ * Contiguous (4-connected) regions of one tile type, largest first.
+ * Rooms are regions, not scattered tiles: painting a tile that touches no
+ * tile of the same room starts a new region.
+ */
+export function regionsOf(g: Grid, t: Tile): Vec[][] {
+  const seen = new Uint8Array(g.w * g.h);
+  const out: Vec[][] = [];
+  for (let y = 0; y < g.h; y++) {
+    for (let x = 0; x < g.w; x++) {
+      const i = idx(g, x, y);
+      if (seen[i] || g.tiles[i] !== t) continue;
+      const region: Vec[] = [];
+      const stack: Vec[] = [{ x, y }];
+      seen[i] = 1;
+      while (stack.length > 0) {
+        const p = stack.pop() as Vec;
+        region.push(p);
+        for (const n of neighbors4(g, p.x, p.y)) {
+          const ni = idx(g, n.x, n.y);
+          if (!seen[ni] && g.tiles[ni] === t) {
+            seen[ni] = 1;
+            stack.push(n);
+          }
+        }
+      }
+      out.push(region);
+    }
+  }
+  return out.sort((a, b) => b.length - a.length);
+}
+
+/** Size of the largest contiguous region of `t`, or 0. */
+export function largestRegion(g: Grid, t: Tile): number {
+  return regionsOf(g, t)[0]?.length ?? 0;
+}
+
+/** Size of the region containing (x, y), or 0 if that tile is not `t`. */
+export function regionSizeAt(g: Grid, x: number, y: number, t: Tile): number {
+  if (tileAt(g, x, y) !== t) return 0;
+  for (const r of regionsOf(g, t)) if (r.some((p) => p.x === x && p.y === y)) return r.length;
+  return 0;
+}
+
+/**
  * The starting hall: a 5x5 dug chamber on the left with the Heart in the centre
  * and the Portal in its corner; the Gate on the far right with one floor tile
  * in front of it; roughly 9% of the remaining rock is gold seam.

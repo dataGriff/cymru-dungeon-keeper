@@ -18,9 +18,13 @@ import {
   type GameState,
   addLog,
   damage,
+  depositGold,
   digTile,
+  dropGold,
   removeEntity,
+  spend,
   strikeHeart,
+  treasurySpace,
   tunnelTile,
 } from './game';
 import {
@@ -34,10 +38,11 @@ import {
   isWalkable,
   markedTiles,
   neighbors4,
+  sameTile,
   tileAt,
   tilesOf,
 } from './grid';
-import { type Mover, dijkstra, findPath } from './path';
+import { type Mover, dijkstra, findPath, pathTouches } from './path';
 import { randInt, randRange } from './rng';
 
 export const HUNGER_EAT = 18;
@@ -80,11 +85,27 @@ export function walk(s: GameState, e: Entity, dt: number): boolean {
 
 const atCentre = (e: Entity): boolean => e.x === Math.round(e.x) && e.y === Math.round(e.y);
 
-/** Re-plan to `goal`, keeping the tile currently being entered if mid-step. */
+/** Has a tile near this entity's path changed since the path was planned? */
+function pathAffected(s: GameState, e: Entity): boolean {
+  if (e.pathVersion === s.mapVersion) return false;
+  const changes = s.mapChanges.filter((c) => c.version > e.pathVersion);
+  if (changes.length < s.mapVersion - e.pathVersion) return true; // history truncated: be safe
+  const here = tileOf(e);
+  return changes.some((c) => pathTouches(e.path, here, c));
+}
+
+/**
+ * Plan a path to `goal`, keeping the tile currently being entered if
+ * mid-step. A path already leading to the same goal is reused unless the
+ * map changed next to it. Returns false when the goal is unreachable.
+ */
 export function setPath(s: GameState, e: Entity, goal: Vec, mover: Mover): boolean {
+  if (e.path.length > 0 && e.pathGoal && sameTile(e.pathGoal, goal) && !pathAffected(s, e)) return true;
   const first = e.path[0];
   const anchor = first && !atCentre(e) ? first : tileOf(e);
   const p = findPath(s.grid, anchor, goal, mover);
+  e.pathGoal = goal;
+  e.pathVersion = s.mapVersion;
   if (!p) {
     e.path = [];
     return false;
@@ -96,6 +117,7 @@ export function setPath(s: GameState, e: Entity, goal: Vec, mover: Mover): boole
 function idle(e: Entity, pause: number): void {
   e.task = 'idle';
   e.path = [];
+  e.pathGoal = null;
   e.target = null;
   e.targetId = null;
   e.timer = pause;
@@ -193,20 +215,26 @@ function seekTile(s: GameState, e: Entity, to: Vec, task: Entity['task'], dt: nu
 
 // ---------- Coblyn ----------
 
+function claimedDrop(s: GameState, drop: Vec, self: Entity): boolean {
+  return s.entities.some((o) => o !== self && o.task === 'gather' && o.target?.x === drop.x && o.target?.y === drop.y);
+}
+
 function claimed(s: GameState, rock: Vec, self: Entity): boolean {
   return s.entities.some((o) => o !== self && o.task === 'dig' && o.target?.x === rock.x && o.target?.y === rock.y);
 }
 
-/** Nearest gold drop, else nearest unclaimed marked rock. Returns true if work was found. */
+/** Nearest pile (if the Treasury has room for it), else nearest unclaimed marked rock. */
 function findWork(s: GameState, e: Entity): boolean {
   const here = tileOf(e);
   let bestDrop: Vec | null = null;
   let bestD = Infinity;
-  for (const d of s.drops) {
-    const dd = distBetween(here, d);
-    if (dd < bestD && findPath(s.grid, here, d, 'floor')) {
-      bestD = dd;
-      bestDrop = d;
+  if (treasurySpace(s) > 0) {
+    for (const d of s.drops) {
+      const dd = distBetween(here, d);
+      if (dd < bestD && !claimedDrop(s, d, e) && findPath(s.grid, here, d, 'floor')) {
+        bestD = dd;
+        bestDrop = d;
+      }
     }
   }
   if (bestDrop && setPath(s, e, bestDrop, 'floor')) {
@@ -259,14 +287,37 @@ export function updateWorker(s: GameState, e: Entity, dt: number): void {
     const drop = s.drops.find((d) => d.x === t.x && d.y === t.y);
     if (!drop) idle(e, 0);
     else if (walk(s, e, dt)) {
-      s.gold += drop.gold;
+      e.carrying += drop.gold;
       s.drops.splice(s.drops.indexOf(drop), 1);
       idle(e, 0);
     }
     return;
   }
+  if (e.carrying > 0) {
+    carryToTreasury(s, e, dt);
+    return;
+  }
   if (findWork(s, e)) return;
   wander(s, e, dt);
+}
+
+/** Walk the gold in hand to the nearest Treasury tile and bank it; drop it if there is no room. */
+function carryToTreasury(s: GameState, e: Entity, dt: number): void {
+  const vault = treasurySpace(s) > 0 ? nearestTile(s, e, Tile.Treasury) : null;
+  if (!vault) {
+    dropGold(s, tileOf(e), e.carrying);
+    e.carrying = 0;
+    idle(e, 0.5);
+    return;
+  }
+  if (seekTile(s, e, vault, 'carry', dt)) {
+    e.carrying = depositGold(s, e.carrying);
+    if (e.carrying > 0) {
+      dropGold(s, tileOf(e), e.carrying);
+      e.carrying = 0;
+    }
+    idle(e, 0.2);
+  }
 }
 
 // ---------- Cŵn Annwn, Pwca, Afanc ----------
@@ -276,7 +327,7 @@ export function updateCreature(s: GameState, e: Entity, dt: number): void {
     e.hunger += hungerRate(e) * dt;
     e.sleep += SLEEP_RATE * dt;
   }
-  if (e.kind === 'pwca' && s.gold > 0 && s.rng() < dt / 12) s.gold -= 1;
+  if (e.kind === 'pwca' && s.gold > 0 && s.rng() < dt / 12) spend(s, 1);
 
   const foe = nearest(e, s.entities, 7, (o) => isHero(o) && !(e.kind === 'pwca' && o.kind === 'knight' && e.hp <= 10));
   if (foe) {
@@ -333,7 +384,19 @@ export function updateCreature(s: GameState, e: Entity, dt: number): void {
 
 // ---------- Mortal Knight, Hedge-Priest ----------
 
+/** A mortal standing on loose gold pockets it. */
+function loot(s: GameState, e: Entity): void {
+  if (!atCentre(e)) return;
+  const i = s.drops.findIndex((d) => d.x === e.x && d.y === e.y);
+  if (i < 0) return;
+  const drop = s.drops[i] as { gold: number };
+  e.carrying += drop.gold;
+  s.drops.splice(i, 1);
+  addLog(s, `The ${BESTIARY[e.kind].name} pockets ${drop.gold} gold from the floor. The manual did warn you.`);
+}
+
 export function updateHero(s: GameState, e: Entity, dt: number): void {
+  loot(s, e);
   if (e.kind === 'priest') {
     const knight = nearest(e, s.entities, 2.5, (o) => o.kind === 'knight');
     if (knight) knight.hp = Math.min(knight.maxHp, knight.hp + PRIEST_HEAL_PER_SECOND * dt);

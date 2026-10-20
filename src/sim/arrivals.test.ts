@@ -3,16 +3,12 @@ import { ARRIVAL_INTERVAL, chooseArrival, countKind, createGame, removeEntity, s
 import { PORTAL_POS, type RoomTile, Tile, setTile } from './grid';
 import { tick } from './index';
 
-/** Lay `n` tiles of a room over the starting chamber's floor. */
-function build(s: ReturnType<typeof createGame>, room: RoomTile, n: number): void {
-  let placed = 0;
-  for (let y = 0; y < s.grid.h && placed < n; y++) {
-    for (let x = 0; x < s.grid.w && placed < n; x++) {
-      if (s.grid.tiles[y * s.grid.w + x] === Tile.Floor) {
-        setTile(s.grid, x, y, room);
-        placed++;
-      }
-    }
+/** Lay `n` tiles of a room as one contiguous strip starting at (x0, y0), snaking right then down. */
+function build(s: ReturnType<typeof createGame>, room: RoomTile, n: number, x0 = 6, y0 = 1): void {
+  for (let i = 0; i < n; i++) {
+    const row = Math.floor(i / 6);
+    const col = row % 2 === 0 ? i % 6 : 5 - (i % 6);
+    setTile(s.grid, x0 + col, y0 + row, room);
   }
 }
 
@@ -40,9 +36,9 @@ describe('arrival rules', () => {
   it('Cŵn Annwn needs Lair ≥ 4 and Hatchery ≥ 2, capped at three', () => {
     const s = createGame(3);
     build(s, Tile.Lair, 3);
-    build(s, Tile.Hatchery, 2);
+    build(s, Tile.Hatchery, 2, 6, 5);
     expect(chooseArrival(s)).toBeNull();
-    build(s, Tile.Lair, 1);
+    build(s, Tile.Lair, 4);
     expect(chooseArrival(s)).toBe('cwn');
     for (let i = 0; i < 3; i++) spawn(s, 'cwn', PORTAL_POS);
     expect(chooseArrival(s)).toBeNull();
@@ -51,9 +47,9 @@ describe('arrival rules', () => {
   it('Pwca needs Lair ≥ 2 and Treasury ≥ 2, capped at two', () => {
     const s = createGame(4);
     build(s, Tile.Lair, 2);
-    build(s, Tile.Treasury, 1);
+    build(s, Tile.Treasury, 1, 6, 5);
     expect(chooseArrival(s)).toBeNull();
-    build(s, Tile.Treasury, 1);
+    build(s, Tile.Treasury, 2, 6, 5);
     expect(chooseArrival(s)).toBe('pwca');
     spawn(s, 'pwca', PORTAL_POS);
     spawn(s, 'pwca', PORTAL_POS);
@@ -63,7 +59,7 @@ describe('arrival rules', () => {
   it('Afanc needs Lair ≥ 9, Treasury ≥ 4 and 300 gold, only one ever', () => {
     const s = createGame(5);
     build(s, Tile.Lair, 9);
-    build(s, Tile.Treasury, 4);
+    build(s, Tile.Treasury, 4, 6, 5);
     spawn(s, 'pwca', PORTAL_POS);
     spawn(s, 'pwca', PORTAL_POS);
     s.gold = 299;
@@ -74,10 +70,28 @@ describe('arrival rules', () => {
     expect(chooseArrival(s)).toBeNull();
   });
 
+  it('counts the largest contiguous region, not scattered tiles', () => {
+    const s = createGame(7);
+    // Four Lair tiles that touch nothing: four regions of one.
+    for (const [x, y] of [
+      [6, 1],
+      [8, 1],
+      [6, 3],
+      [8, 3],
+    ] as const) {
+      setTile(s.grid, x, y, Tile.Lair);
+    }
+    build(s, Tile.Hatchery, 2, 6, 5);
+    expect(chooseArrival(s)).toBeNull();
+    setTile(s.grid, 7, 1, Tile.Lair);
+    setTile(s.grid, 9, 1, Tile.Lair);
+    expect(chooseArrival(s)).toBe('cwn');
+  });
+
   it('checks the rules in order: a missing Coblyn comes before a hound', () => {
     const s = createGame(6);
     build(s, Tile.Lair, 4);
-    build(s, Tile.Hatchery, 2);
+    build(s, Tile.Hatchery, 2, 6, 5);
     removeEntity(s, s.entities[0]!);
     expect(chooseArrival(s)).toBe('coblyn');
   });

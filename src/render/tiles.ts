@@ -28,7 +28,10 @@ function drawFloorBase(ctx: CanvasRenderingContext2D, px: number, py: number, co
   ctx.fillRect(px, py, 1, TILE);
 }
 
-export function drawTile(ctx: CanvasRenderingContext2D, g: Grid, x: number, y: number, t: number): void {
+/**
+ * @param fill How full the Treasury is, 0..1; only Treasury tiles use it.
+ */
+export function drawTile(ctx: CanvasRenderingContext2D, g: Grid, x: number, y: number, t: number, fill = 0): void {
   const px = x * TILE;
   const py = y * TILE;
   const tile = tileAt(g, x, y);
@@ -79,15 +82,20 @@ export function drawTile(ctx: CanvasRenderingContext2D, g: Grid, x: number, y: n
       ctx.fillRect(px + ex + 2, py + ey + 4, 2, 2);
       break;
     }
-    case Tile.Treasury:
+    case Tile.Treasury: {
       drawFloorBase(ctx, px, py, P.treasury);
       ctx.fillStyle = P.goldDark;
-      ctx.fillRect(px + 6, py + 18, 16, 4);
+      ctx.fillRect(px + 5, py + 20, 18, 3);
+      // Coin stacks rise as the vault fills.
+      const stacks = Math.round(fill * 4);
       ctx.fillStyle = P.gold;
-      ctx.fillRect(px + 8, py + 14, 12, 4);
-      ctx.fillRect(px + 10, py + 10, 8, 4);
-      flecks(ctx, px, py, x, y, 2, P.gold, 80);
+      if (stacks >= 1) ctx.fillRect(px + 7, py + 16, 14, 4);
+      if (stacks >= 2) ctx.fillRect(px + 9, py + 12, 10, 4);
+      if (stacks >= 3) ctx.fillRect(px + 11, py + 8, 6, 4);
+      if (stacks >= 4) ctx.fillRect(px + 4, py + 10, 3, 10);
+      if (fill > 0) flecks(ctx, px, py, x, y, 2, P.gold, 80);
       break;
+    }
     case Tile.Portal: {
       ctx.fillStyle = P.portal;
       ctx.fillRect(px, py, TILE, TILE);

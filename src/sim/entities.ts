@@ -6,6 +6,7 @@ export type Task =
   | 'wander'
   | 'dig'
   | 'gather'
+  | 'carry'
   | 'flee'
   | 'toFood'
   | 'eat'
@@ -44,6 +45,17 @@ export interface Entity {
   facing: -1 | 1;
   /** Has this hero already landed a blow on the Heart (for the log)? */
   struckHeart: boolean;
+  /** Gold in hand: a Coblyn carrying a pile to the Treasury, or a hero's loot. */
+  carrying: number;
+  /** Paydays missed in a row. */
+  unpaid: number;
+  /** Map version the current path was planned against. */
+  pathVersion: number;
+  /** Where the current path leads. */
+  pathGoal: Vec | null;
+  /** Position at the previous tick, for render interpolation. */
+  px: number;
+  py: number;
 }
 
 export interface Drop {
@@ -80,6 +92,12 @@ export function spawnEntity(id: number, kind: BeastKind, at: Vec): Entity {
     flash: 0,
     facing: 1,
     struckHeart: false,
+    carrying: 0,
+    unpaid: 0,
+    pathVersion: -1,
+    pathGoal: null,
+    px: at.x,
+    py: at.y,
   };
 }
 

@@ -27,6 +27,12 @@ tasks:
     cmds:
       - npm run test
 
+  bench:
+    desc: Performance budgets (pathfinding) without coverage instrumentation
+    deps: [install]
+    cmds:
+      - npm run bench
+
   lint:
     desc: ESLint + strict TypeScript typecheck
     deps: [install]
@@ -38,4 +44,5 @@ tasks:
     cmds:
       - task: lint
       - task: test
+      - task: bench
       - task: build

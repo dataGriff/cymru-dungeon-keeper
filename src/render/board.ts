@@ -1,6 +1,6 @@
 import { BESTIARY } from '../data/bestiary';
 import type { Entity } from '../sim/entities';
-import type { GameState } from '../sim/game';
+import { type GameState, treasuryCapacity, vaultGold } from '../sim/game';
 import { type Vec, inBounds, isRock, markedTiles, tileAt } from '../sim/grid';
 import { drawLighting } from './lighting';
 import { PALETTE as P } from './palette';
@@ -28,9 +28,11 @@ export function createBoardView(canvas: HTMLCanvasElement, w: number, h: number)
 
 export const SPRITE_PX = 2;
 
-function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, t: number): void {
-  const cx = (e.x + 0.5) * TILE;
-  const baseY = (e.y + 1) * TILE - 1;
+function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, t: number, alpha: number): void {
+  const ix = e.px + (e.x - e.px) * alpha;
+  const iy = e.py + (e.y - e.py) * alpha;
+  const cx = (ix + 0.5) * TILE;
+  const baseY = (iy + 1) * TILE - 1;
   const sleeping = e.task === 'sleep';
   drawBeast(ctx, e.kind, cx, baseY, SPRITE_PX, {
     t: t + e.id,
@@ -55,6 +57,17 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, t: number): void {
     const crumb = Math.floor((t * 6) % 3);
     ctx.fillRect(cx + 6 + crumb * 2, baseY - 8 + crumb, 2, 2);
   }
+  if (e.carrying > 0) {
+    ctx.fillStyle = P.goldDark;
+    ctx.fillRect(cx - 3, baseY - 31, 6, 4);
+    ctx.fillStyle = P.gold;
+    ctx.fillRect(cx - 2, baseY - 30, 4, 2);
+  }
+  if (e.unpaid > 0) {
+    ctx.fillStyle = P.blood;
+    ctx.font = 'bold 12px VT323, monospace';
+    ctx.fillText('!', cx - 10, baseY - 24);
+  }
   if (e.hp < e.maxHp) {
     const frac = Math.max(0, e.hp / e.maxHp);
     ctx.fillStyle = P.hpBack;
@@ -75,14 +88,19 @@ function drawDrop(ctx: CanvasRenderingContext2D, x: number, y: number, t: number
   if (glint) ctx.fillRect(px + 8, py + 12, 2, 2);
 }
 
-/** Draw everything: tiles, drops, beasts (back to front), then the lighting pass. */
-export function drawBoard(view: BoardView, s: GameState, t: number, hover: Vec | null): void {
+/**
+ * Draw everything: tiles, drops, beasts (back to front), then the lighting pass.
+ * `alpha` is the fraction of the way from the previous sim tick to the current one.
+ */
+export function drawBoard(view: BoardView, s: GameState, t: number, hover: Vec | null, alpha = 1): void {
   const { ctx } = view;
   const g = s.grid;
-  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) drawTile(ctx, g, x, y, t);
+  const cap = treasuryCapacity(g);
+  const fill = cap > 0 ? Math.min(1, vaultGold(s) / cap) : 0;
+  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) drawTile(ctx, g, x, y, t, fill);
   for (const d of s.drops) drawDrop(ctx, d.x, d.y, t);
   const sorted = [...s.entities].sort((a, b) => a.y - b.y);
-  for (const e of sorted) drawEntity(ctx, e, t);
+  for (const e of sorted) drawEntity(ctx, e, t, alpha);
   drawLighting(ctx, view.light, g, s.entities, t);
   // The steward's own marks stay legible in the dark: redraw them over the lighting.
   ctx.strokeStyle = P.mark;
@@ -112,7 +130,7 @@ export function drawBoard(view: BoardView, s: GameState, t: number, hover: Vec |
 /** The entity under a board pixel, if any (for opening the manual). */
 export function entityAt(s: GameState, px: number, py: number): Entity | null {
   let best: Entity | null = null;
-  let bestD = 18;
+  let bestD = 12;
   for (const e of s.entities) {
     const cx = (e.x + 0.5) * TILE;
     const cy = (e.y + 0.5) * TILE;

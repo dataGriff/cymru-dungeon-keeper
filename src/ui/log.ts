@@ -19,7 +19,7 @@ export function createLog(lines = 3): EventLog {
       if (key === lastKey) return;
       lastKey = key;
       rows.forEach((row, i) => {
-        const line = tail[i + (lines - tail.length)];
+        const line = tail[i - (lines - tail.length)];
         row.textContent = line ? line.text : '';
         row.classList.toggle('log-latest', i === lines - 1);
       });
