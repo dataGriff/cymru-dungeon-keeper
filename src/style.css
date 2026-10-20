@@ -791,3 +791,64 @@ canvas.board {
   color: var(--bone-dim);
   align-self: center;
 }
+
+/* ---------- M7: settings, profiler, accessibility ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.settings select {
+  font-family: var(--font-hud);
+  font-size: 17px;
+  background: var(--bg-2);
+  color: var(--bone);
+  border: 1px solid #3a2f4a;
+}
+.settings-hint {
+  margin: 4px 4px 0;
+  font-size: 16px;
+  color: var(--bone-dim);
+}
+.profiler {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 3;
+  margin: 0;
+  padding: 6px 8px;
+  font-family: var(--font-hud);
+  font-size: 15px;
+  line-height: 1.15;
+  color: var(--bone);
+  background: rgba(11, 8, 18, 0.85);
+  border: 1px solid var(--ember-dim);
+  pointer-events: none;
+}
+/* Integer scaling: the board may overflow its column and scroll sideways. */
+.board-wrap {
+  overflow-x: auto;
+}
+canvas.board:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
+}
+/* Settings-driven reduced motion, in addition to the media query. */
+:root[data-reduced-motion='true'] .manual-turn,
+:root[data-reduced-motion='true'] .title-press {
+  animation: none;
+}
+:root[data-reduced-motion='true'] .title {
+  transition: none;
+}
+/* Keep the board readable when the text is scaled: it is sized in px on purpose. */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 1px;
+}

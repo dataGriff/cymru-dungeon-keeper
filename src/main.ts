@@ -19,6 +19,8 @@ import { SPEEDS, TOOL_KEYS, TOOL_ROOM, type Tool, createToolbar, isTrapTool } fr
 import { showBriefing } from './ui/briefing';
 import { createEditor } from './ui/editor';
 import { campaignProgress, download, loadFromSlot, pickFile, saveToSlot, setCampaignProgress, slotInfo } from './ui/saves';
+import { createProfiler } from './ui/profiler';
+import { type Settings, applySettings, loadSettings, saveSettings } from './ui/settings';
 import { createTitleScreen } from './ui/title';
 import { fromJSON, toJSON } from './sim/save';
 import { createTooltip } from './ui/tooltip';
@@ -73,7 +75,12 @@ function main(): void {
   canvas.setAttribute('aria-label', 'The hall. Click or drag to mark rock and paint rooms; click a creature to read about it.');
   let view: BoardView = createBoardView(canvas, state.grid.w, state.grid.h);
   const fitBoard = (w: number, h: number): void => {
-    if (canvas.width !== w * TILE || canvas.height !== h * TILE) view = createBoardView(canvas, w, h);
+    if (canvas.width !== w * TILE || canvas.height !== h * TILE) {
+      view = createBoardView(canvas, w, h);
+      applyToView();
+    }
+    canvas.style.width = settings.scale > 0 ? `${w * TILE * settings.scale}px` : '';
+    canvas.style.maxWidth = settings.scale > 0 ? 'none' : '';
   };
   const hud = createHud();
   const log = createLog(3);
@@ -85,6 +92,13 @@ function main(): void {
   manual.setPages(state.pages);
   const tooltip = createTooltip();
   const audio = createCaveAudio();
+  const settings: Settings = loadSettings();
+  applySettings(settings);
+  const profiler = createProfiler();
+  const applyToView = (): void => {
+    view.lighting.reducedMotion = settings.reducedMotion || settings.noFlicker;
+    view.safeColours = settings.safeColours;
+  };
 
   const setPaused = (p: boolean): void => {
     if (state.status !== 'playing') return;
@@ -220,11 +234,63 @@ function main(): void {
     slider('Ambient', 'ambient'),
     slider('Effects', 'sfx'),
   ]);
-  const left = el('section', { className: 'play' }, [title, hud.root, boardWrap, toolbar.root, editorPanel.root, saveRow, mixer, log.root]);
+  // Settings: motion, flicker, text size, scale, safe colours.
+  const check = (label: string, key: 'reducedMotion' | 'noFlicker' | 'safeColours'): HTMLElement => {
+    const input = el('input');
+    input.type = 'checkbox';
+    input.checked = settings[key];
+    input.addEventListener('change', () => {
+      settings[key] = input.checked;
+      saveSettings(settings);
+      applySettings(settings);
+      applyToView();
+    });
+    return el('label', { className: 'mixer-row' }, [input, ` ${label}`]);
+  };
+  const select = <K extends 'textScale' | 'scale'>(label: string, key: K, options: [Settings[K], string][]): HTMLElement => {
+    const sel = el('select');
+    for (const [v, text] of options) {
+      const o = el('option', { text });
+      o.value = String(v);
+      o.selected = settings[key] === v;
+      sel.append(o);
+    }
+    sel.setAttribute('aria-label', label);
+    sel.addEventListener('change', () => {
+      settings[key] = Number(sel.value) as Settings[K];
+      saveSettings(settings);
+      applySettings(settings);
+      fitBoard(state.grid.w, state.grid.h);
+    });
+    return el('label', { className: 'mixer-row' }, [el('span', { text: label }), sel]);
+  };
+  const settingsPanel = el('details', { className: 'mixer settings' }, [
+    el('summary', { text: 'Settings' }),
+    check('Reduce motion', 'reducedMotion'),
+    check('Steady torches (no flicker)', 'noFlicker'),
+    check('Colour-blind safe bars', 'safeColours'),
+    select('Text size', 'textScale', [
+      [100, '100%'],
+      [125, '125%'],
+      [150, '150%'],
+    ]),
+    select('Board scale', 'scale', [
+      [0, 'Fit'],
+      [1, '1×'],
+      [2, '2×'],
+      [3, '3×'],
+      [4, '4×'],
+    ]),
+    el('p', { className: 'settings-hint', text: 'F11 fullscreen · F3 frame timings · arrow keys move the cursor on the board, Enter uses the tool, Backspace is the right-click.' }),
+  ]);
+  const left = el('section', { className: 'play' }, [title, hud.root, boardWrap, toolbar.root, editorPanel.root, saveRow, mixer, settingsPanel, log.root]);
+  boardWrap.append(profiler.root);
   app.append(el('div', { className: 'layout' }, [left, manual.root]));
 
   // ---------- input ----------
   let hover: Vec | null = null;
+  /** Keyboard cursor on the board, for playing without a mouse. */
+  let cursor: Vec | null = null;
   let painting = false;
   let digMode = true;
   /** The press in progress: where it started, whether it has become a drag, and what it hit. */
@@ -342,8 +408,46 @@ function main(): void {
     tooltip.hide();
   });
 
+  canvas.tabIndex = 0;
+  canvas.addEventListener('focus', () => {
+    if (!cursor) cursor = { x: Math.floor(state.grid.w / 2), y: Math.floor(state.grid.h / 2) };
+    hover = cursor;
+  });
+  canvas.addEventListener('blur', () => {
+    cursor = null;
+  });
   window.addEventListener('keydown', (ev) => {
-    if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement) return;
+    if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement || ev.target instanceof HTMLSelectElement) return;
+    if (ev.key === 'F3') {
+      ev.preventDefault();
+      profiler.toggle();
+      return;
+    }
+    if (ev.key === 'F11') {
+      ev.preventDefault();
+      if (document.fullscreenElement) void document.exitFullscreen();
+      else void app.requestFullscreen?.();
+      return;
+    }
+    if (cursor && document.activeElement === canvas) {
+      const move: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+      const d = move[ev.key];
+      if (d) {
+        ev.preventDefault();
+        cursor = { x: Math.max(0, Math.min(state.grid.w - 1, cursor.x + d[0])), y: Math.max(0, Math.min(state.grid.h - 1, cursor.y + d[1])) };
+        hover = cursor;
+        tooltip.show(state, cursor, null, (cursor.x + 0.5) * (canvas.clientWidth / state.grid.w), (cursor.y + 0.5) * (canvas.clientHeight / state.grid.h));
+        return;
+      }
+      if (ev.key === 'Enter' || ev.key === 'Backspace' || ev.key === 'Delete') {
+        ev.preventDefault();
+        const secondary = ev.key !== 'Enter';
+        if (!secondary && toolbar.active === 'dig') digMode = isRock(tileAt(state.grid, cursor.x, cursor.y)) ? !isMarked(state.grid, cursor.x, cursor.y) : true;
+        applyTool(toolbar.active, cursor, secondary, true);
+        tooltip.show(state, cursor, null, (cursor.x + 0.5) * (canvas.clientWidth / state.grid.w), (cursor.y + 0.5) * (canvas.clientHeight / state.grid.h));
+        return;
+      }
+    }
     const key = ev.key.toLowerCase();
     if (key === ' ') {
       ev.preventDefault();
@@ -385,11 +489,17 @@ function main(): void {
   });
   app.append(titleScreen.root);
   let started = false;
-  void titleScreen.wait().then(async (choice) => {
+  // ?start=<level id> skips the title and briefing: for audits, screenshots and quick testing.
+  const quick = new URLSearchParams(window.location.search).get('start');
+  const quickLevel = quick ? CAMPAIGN.find((l) => l.id === quick) : undefined;
+  const chosen: Promise<import('./ui/title').TitleChoice> = quickLevel
+    ? (titleScreen.root.remove(), Promise.resolve({ mode: 'campaign', index: CAMPAIGN.indexOf(quickLevel) }))
+    : titleScreen.wait();
+  void chosen.then(async (choice) => {
     if (choice.mode === 'campaign') {
       campaignIndex = choice.index;
       const level = CAMPAIGN[choice.index] ?? CAMPAIGN[0]!;
-      await showBriefing(app, level, choice.index);
+      if (!quickLevel) await showBriefing(app, level, choice.index);
       startLevel(level);
     } else if (choice.mode === 'sandbox') {
       campaignIndex = null;
@@ -419,6 +529,7 @@ function main(): void {
   const frame = (now: number): void => {
     const elapsed = (now - last) / 1000;
     last = now;
+    const f0 = performance.now();
     if (editing) {
       fitBoard(editorPanel.grid.w, editorPanel.grid.h);
       const preview = { ...state, grid: editorPanel.grid, entities: [], drops: [], traps: [], boulders: [], rubble: [], corpses: [], hunt: false };
@@ -427,6 +538,7 @@ function main(): void {
       return;
     }
     const alpha = paused || !started ? Math.min(1, clock.acc / TICK) : advance(state, clock, elapsed, speed);
+    profiler.mark('sim', performance.now() - f0);
     audio.react(takeEvents(state), (_id, x, y) => {
       let best = Infinity;
       for (const e of state.entities) if (isHero(e)) best = Math.min(best, Math.hypot(e.x - x, e.y - y));
@@ -435,6 +547,10 @@ function main(): void {
     const t = now / 1000;
     if (selectedId !== null && !state.entities.some((e) => e.id === selectedId)) selectedId = null;
     drawBoard(view, state, t, hover, alpha, selectedId);
+    profiler.mark('tiles', view.timings.tiles);
+    profiler.mark('entities', view.timings.entities);
+    profiler.mark('lighting', view.timings.lighting);
+    const u0 = performance.now();
     hud.update(state, paused, speed);
     log.update(state);
     manual.setEmissary(emissary(state) !== undefined, state.gold);
@@ -445,6 +561,8 @@ function main(): void {
       savePages(state.pages);
     }
     manual.tick(t);
+    profiler.mark('ui', performance.now() - u0);
+    profiler.frame(performance.now() - f0, state.entities.length);
     if (state.status !== lastStatus) {
       lastStatus = state.status;
       if (state.status === 'won' && campaignIndex !== null && campaignIndex + 1 < CAMPAIGN.length) {

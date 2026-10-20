@@ -13,6 +13,10 @@ export interface BoardView {
   ctx: CanvasRenderingContext2D;
   light: CanvasRenderingContext2D;
   lighting: LightingOptions;
+  /** Colour-blind safe bars: blue for the hall, orange for mortals, with a stripe for the damaged part. */
+  safeColours: boolean;
+  /** Milliseconds spent this frame on tiles, entities and lighting, for the profiler. */
+  timings: { tiles: number; entities: number; lighting: number };
 }
 
 export function createBoardView(canvas: HTMLCanvasElement, w: number, h: number): BoardView {
@@ -22,12 +26,19 @@ export function createBoardView(canvas: HTMLCanvasElement, w: number, h: number)
   if (!ctx) throw new Error('Canvas 2D is not available');
   ctx.imageSmoothingEnabled = false;
   const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  return { canvas, ctx, light: createLightMap(canvas.width, canvas.height), lighting: { reducedMotion: reduced } };
+  return {
+    canvas,
+    ctx,
+    light: createLightMap(canvas.width, canvas.height),
+    lighting: { reducedMotion: reduced },
+    safeColours: false,
+    timings: { tiles: 0, entities: 0, lighting: 0 },
+  };
 }
 
 export const SPRITE_PX = 2;
 
-function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, t: number, alpha: number, selected: boolean): void {
+function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, t: number, alpha: number, selected: boolean, safe: boolean): void {
   const ix = e.px + (e.x - e.px) * alpha;
   const iy = e.py + (e.y - e.py) * alpha;
   const cx = (ix + 0.5) * TILE;
@@ -98,10 +109,19 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, t: number, alpha: 
   }
   if (e.hp < e.maxHp) {
     const frac = Math.max(0, e.hp / e.maxHp);
+    const hero = BESTIARY[e.kind].stats.allegiance === 'mortal';
     ctx.fillStyle = P.hpBack;
     ctx.fillRect(cx - 8, baseY - 32, 16, 3);
-    ctx.fillStyle = frac > 0.4 ? P.hpGood : P.hpBad;
-    ctx.fillRect(cx - 8, baseY - 32, Math.round(16 * frac), 3);
+    if (safe) {
+      // Allegiance by hue (blue/orange read for every common colour vision), damage by length and a stripe.
+      ctx.fillStyle = hero ? '#f0a030' : '#5aa9ff';
+      ctx.fillRect(cx - 8, baseY - 32, Math.round(16 * frac), 3);
+      ctx.fillStyle = P.bone;
+      for (let x = Math.round(16 * frac); x < 16; x += 3) ctx.fillRect(cx - 8 + x, baseY - 31, 1, 1);
+    } else {
+      ctx.fillStyle = frac > 0.4 ? P.hpGood : P.hpBad;
+      ctx.fillRect(cx - 8, baseY - 32, Math.round(16 * frac), 3);
+    }
   }
 }
 
@@ -133,7 +153,10 @@ export function drawBoard(
   const g = s.grid;
   const cap = treasuryCapacity(g);
   const fill = cap > 0 ? Math.min(1, vaultGold(s) / cap) : 0;
+  const t0 = performance.now();
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) drawTile(ctx, g, x, y, t, fill);
+  const t1 = performance.now();
+  view.timings.tiles = t1 - t0;
   for (const r of s.rubble) drawRubble(ctx, r.x, r.y, s.time - r.t, RUBBLE_SECONDS);
   for (const c of s.corpses) {
     ctx.globalAlpha = Math.max(0, 1 - (s.time - c.t) / CORPSE_SECONDS);
@@ -152,7 +175,7 @@ export function drawBoard(
   }
   for (const b of s.boulders) drawEngine(ctx, 'boulder', (b.x + 0.5) * TILE, (b.y + 0.5) * TILE, 2);
   const sorted = [...s.entities].sort((a, b) => a.y - b.y);
-  for (const e of sorted) drawEntity(ctx, e, t, alpha, e.id === selectedId);
+  for (const e of sorted) drawEntity(ctx, e, t, alpha, e.id === selectedId, view.safeColours);
   if (warded(s)) {
     // The emissary's ward: a cold ring on the Gate.
     const gx = (GATE_POS.x + 0.5) * TILE;
@@ -165,7 +188,10 @@ export function drawBoard(
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
+  const t2 = performance.now();
+  view.timings.entities = t2 - t1;
   if (lit) drawLighting(ctx, view.light, g, s.entities, t, { ...view.lighting, hunt: s.hunt });
+  view.timings.lighting = performance.now() - t2;
   // The steward's own marks stay legible in the dark: redraw them over the lighting.
   ctx.strokeStyle = P.mark;
   ctx.globalAlpha = 0.7;

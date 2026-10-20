@@ -20,8 +20,23 @@ export function createHud(): Hud {
   const preview = el('span', { className: 'hud-preview' });
   preview.setAttribute('aria-label', 'Next wave');
   const root = el('div', { className: 'hud' }, [gold, heart, wave, creatures, tally, clock, status, preview]);
-  root.setAttribute('role', 'status');
-  root.setAttribute('aria-live', 'off');
+  root.setAttribute('role', 'group');
+  root.setAttribute('aria-label', 'Hall status');
+  for (const [node, label] of [
+    [gold, 'Gold'],
+    [heart, 'Heart'],
+    [wave, 'Wave'],
+    [creatures, 'Creatures'],
+    [status, 'Next wave or mortals'],
+  ] as const) {
+    node.setAttribute('aria-label', label);
+  }
+  // A quiet live region a screen reader hears every few seconds, not every frame.
+  const live = el('div', { className: 'sr-only' });
+  live.setAttribute('aria-live', 'polite');
+  live.setAttribute('aria-atomic', 'true');
+  root.append(live);
+  let lastLive = -Infinity;
   let previewKey = '';
   const renderPreview = (s: GameState): void => {
     const heroes = s.wave < finalWave(s) ? nextWave(s) : [];
@@ -69,6 +84,10 @@ export function createHud(): Hud {
       } else {
         status.textContent = 'The stair is quiet.';
         status.classList.remove('hud-danger');
+      }
+      if (s.time - lastLive >= 8) {
+        lastLive = s.time;
+        live.textContent = `${gold.textContent}. ${heart.textContent}. ${wave.textContent}. ${status.textContent}.`;
       }
     },
   };
