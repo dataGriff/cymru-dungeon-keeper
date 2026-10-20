@@ -1,11 +1,25 @@
-import { BESTIARY, BESTIARY_ORDER, type BeastKind, MANUAL_FIRST_PAGE, MANUAL_FOOTNOTE, TRADES, type TradeKind } from '../data/bestiary';
-import { drawBeast } from '../render/sprites';
+import {
+  BESTIARY,
+  BESTIARY_ORDER,
+  type BeastKind,
+  ENGINES,
+  ENGINE_ORDER,
+  type EngineKind,
+  MANUAL_ENGINES_FIRST_PAGE,
+  MANUAL_FIRST_PAGE,
+  MANUAL_FOOTNOTE,
+  TRADES,
+  type TradeKind,
+} from '../data/bestiary';
+import { drawBeast, drawEngine } from '../render/sprites';
 import type { Pages } from '../sim/game';
 import { el } from './dom';
 
 export interface Manual {
   root: HTMLElement;
   open(kind: BeastKind): void;
+  /** Turn to the Engines of the Hall section. */
+  openEngine(kind: EngineKind): void;
   /** Unlock state per page; re-renders the open page when it changes. */
   setPages(pages: Pages): void;
   /** Show (or hide) the emissary's trade card. */
@@ -31,6 +45,13 @@ const PORTRAIT_PX = 8; // 12x14 logical pixels at 8px = 96x112
 export function createManual(h: ManualHandlers): Manual {
   const header = el('div', { className: 'manual-header' });
   let pages: Pages | null = null;
+  /** When set, the page shows an engine instead of a beast. */
+  let engine: EngineKind | null = null;
+  const engineTabs = el('div', { className: 'manual-tabs manual-tabs-engines' });
+  engineTabs.setAttribute('role', 'tablist');
+  engineTabs.setAttribute('aria-label', 'Engines of the Hall');
+  const engineButtons = new Map<EngineKind, HTMLButtonElement>();
+  const sectionLabel = el('div', { className: 'manual-section' });
   const faded = el('p', { className: 'manual-faded hidden', text: 'The page is faded. Something must be seen in the hall before it can be read.' });
   const notesFaded = el('p', { className: 'manual-faded hidden', text: 'The field notes are blank. They are written after a wave is weathered.' });
   // The emissary's card.
@@ -60,7 +81,9 @@ export function createManual(h: ManualHandlers): Manual {
   const page = el('div', { className: 'manual-page' }, [
     header,
     trade,
+    sectionLabel,
     tabs,
+    engineTabs,
     el('div', { className: 'manual-head' }, [portrait, el('div', { className: 'manual-title' }, [name, gloss])]),
     faded,
     flavour,
@@ -77,12 +100,54 @@ export function createManual(h: ManualHandlers): Manual {
 
   const stateOf = (kind: BeastKind): 'unseen' | 'seen' | 'studied' => pages?.[kind] ?? 'studied';
 
+  const openEngine = (kind: EngineKind): void => {
+    engine = kind;
+    const entry = ENGINES[kind];
+    header.textContent = `ENGINES OF THE HALL · p. ${MANUAL_ENGINES_FIRST_PAGE + ENGINE_ORDER.indexOf(kind)}`;
+    sectionLabel.textContent = 'Engines of the Hall';
+    for (const [k, b] of engineButtons) {
+      b.classList.toggle('active', k === kind);
+      b.setAttribute('aria-selected', String(k === kind));
+    }
+    for (const [, b] of tabButtons) {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    }
+    faded.classList.add('hidden');
+    flavour.classList.remove('hidden');
+    stats.classList.remove('hidden');
+    notesTitle.classList.remove('hidden');
+    notes.classList.remove('hidden');
+    notesFaded.classList.add('hidden');
+    name.textContent = entry.name;
+    gloss.textContent = entry.gloss;
+    flavour.textContent = entry.flavour;
+    stats.replaceChildren();
+    const st = entry.stats;
+    const rows: [string, string][] = [
+      ['Cost', `${st.cost}g`],
+      ['Labour', `${st.build}s`],
+      [kind === 'snare' ? 'Bite' : 'Blow', kind === 'snare' ? `${st.damage}/s` : String(st.damage)],
+      [kind === 'boulder' ? 'Reach' : kind === 'pit' ? 'Slow' : 'Hold', kind === 'boulder' ? `${st.effect} tiles` : `${st.effect}s`],
+      ['Uses', 'One'],
+      ['Builder', 'Coblyn'],
+    ];
+    for (const [k, v] of rows) stats.append(el('dt', { text: k }), el('dd', { text: v }));
+    notes.replaceChildren(...entry.notes.map((n) => el('li', { text: n })));
+  };
+
   const open = (kind: BeastKind): void => {
+    engine = null;
     current = kind;
     const entry = BESTIARY[kind];
     const state = stateOf(kind);
     const pageNo = MANUAL_FIRST_PAGE + BESTIARY_ORDER.indexOf(kind);
     header.textContent = `BESTIARY · p. ${pageNo}`;
+    sectionLabel.textContent = BESTIARY[kind].stats.allegiance === 'mortal' ? 'Mortals' : 'Denizens';
+    for (const [, b] of engineButtons) {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    }
     faded.classList.toggle('hidden', state !== 'unseen');
     flavour.classList.toggle('hidden', state === 'unseen');
     stats.classList.toggle('hidden', state === 'unseen');
@@ -140,6 +205,13 @@ export function createManual(h: ManualHandlers): Manual {
     tabButtons.set(kind, b);
     tabs.append(b);
   }
+  for (const kind of ENGINE_ORDER) {
+    const b = el('button', { className: 'manual-tab', text: ENGINES[kind].name });
+    b.setAttribute('role', 'tab');
+    b.addEventListener('click', () => openEngine(kind));
+    engineButtons.set(kind, b);
+    engineTabs.append(b);
+  }
   page.setAttribute('role', 'tabpanel');
   page.setAttribute('aria-live', 'polite');
   open(current);
@@ -149,6 +221,7 @@ export function createManual(h: ManualHandlers): Manual {
   return {
     root,
     open,
+    openEngine,
     setPages(next) {
       const key = JSON.stringify(next);
       if (key === pagesKey) return;
@@ -170,6 +243,10 @@ export function createManual(h: ManualHandlers): Manual {
     tick(t) {
       if (!pctx) return;
       pctx.clearRect(0, 0, PORTRAIT, PORTRAIT);
+      if (engine) {
+        drawEngine(pctx, engine, PORTRAIT / 2, PORTRAIT / 2, 8);
+        return;
+      }
       drawBeast(pctx, current, PORTRAIT / 2, PORTRAIT - 2, PORTRAIT_PX, {
         t,
         facing: 1,

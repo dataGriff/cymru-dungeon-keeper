@@ -469,3 +469,37 @@ canvas.board {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* ---------- M3: wave preview, tally ---------- */
+.hud-preview {
+  display: inline-flex;
+  gap: 2px;
+  align-items: flex-end;
+  flex-basis: 100%;
+  min-height: 0;
+}
+.hud-preview:empty {
+  display: none;
+}
+.hud-icon {
+  width: 24px;
+  height: 28px;
+  image-rendering: pixelated;
+}
+.hud-tally {
+  color: var(--bone-dim);
+}
+
+/* ---------- M3: manual sections ---------- */
+.manual-section {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 4px;
+}
+.manual-tabs-engines {
+  padding-top: 6px;
+  border-top: 1px dotted rgba(60, 40, 20, 0.35);
+}

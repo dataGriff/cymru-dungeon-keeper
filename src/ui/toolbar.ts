@@ -1,10 +1,13 @@
+import { ENGINES } from '../data/bestiary';
 import { ROOM_COST } from '../sim/economy';
 import { Tile } from '../sim/grid';
 import { el } from './dom';
 
-export type Tool = 'hand' | 'dig' | 'lair' | 'hatchery' | 'treasury' | 'pool';
+export type Tool = 'hand' | 'dig' | 'lair' | 'hatchery' | 'treasury' | 'pool' | 'pit' | 'boulder' | 'snare';
+export type TrapTool = 'pit' | 'boulder' | 'snare';
+export const isTrapTool = (t: Tool): t is TrapTool => t === 'pit' || t === 'boulder' || t === 'snare';
 
-export const TOOL_ROOM: Record<Exclude<Tool, 'dig' | 'hand'>, Tile.Lair | Tile.Hatchery | Tile.Treasury | Tile.Pool> = {
+export const TOOL_ROOM: Record<Exclude<Tool, 'dig' | 'hand' | TrapTool>, Tile.Lair | Tile.Hatchery | Tile.Treasury | Tile.Pool> = {
   lair: Tile.Lair,
   hatchery: Tile.Hatchery,
   treasury: Tile.Treasury,
@@ -12,7 +15,17 @@ export const TOOL_ROOM: Record<Exclude<Tool, 'dig' | 'hand'>, Tile.Lair | Tile.H
 };
 
 /** Keyboard shortcut per tool. */
-export const TOOL_KEYS: Record<Tool, string> = { hand: 'g', dig: 'd', lair: 'l', hatchery: 'h', treasury: 't', pool: 'p' };
+export const TOOL_KEYS: Record<Tool, string> = {
+  hand: 'g',
+  dig: 'd',
+  lair: 'l',
+  hatchery: 'h',
+  treasury: 't',
+  pool: 'p',
+  pit: 'i',
+  boulder: 'b',
+  snare: 's',
+};
 
 const TOOLS: { tool: Tool; label: string; hint: string }[] = [
   { tool: 'hand', label: 'Hand', hint: 'Click a creature to read its page and pick it up; click a tile to send it there. Right-click lets go.' },
@@ -21,6 +34,9 @@ const TOOLS: { tool: Tool; label: string; hint: string }[] = [
   { tool: 'hatchery', label: `Hatchery ${ROOM_COST[Tile.Hatchery]}g`, hint: 'Paint onto floor. Creatures eat here. Right-click or click again to sell for half.' },
   { tool: 'treasury', label: `Treasury ${ROOM_COST[Tile.Treasury]}g`, hint: 'Paint onto floor. Holds your gold; bigger rooms hold more per tile. Right-click or click again to sell for half.' },
   { tool: 'pool', label: `Pool ${ROOM_COST[Tile.Pool]}g`, hint: 'Paint onto floor. The water-beasts rest here. Right-click or click again to sell for half.' },
+  { tool: 'pit', label: `Pit ${ENGINES.pit.stats.cost}g`, hint: 'Plan on floor; a Coblyn digs it. Hurts and slows the first mortal to step in. Click again to cancel.' },
+  { tool: 'boulder', label: `Boulder ${ENGINES.boulder.stats.cost}g`, hint: 'Plan at the top of a straight corridor. Rolls at the first mortal in line. Click again to cancel.' },
+  { tool: 'snare', label: `Snare ${ENGINES.snare.stats.cost}g`, hint: 'Plan on floor. Holds the first mortal fast for four seconds. Hurts the Fair Folk. Click again to cancel.' },
 ];
 
 export interface ToolbarHandlers {

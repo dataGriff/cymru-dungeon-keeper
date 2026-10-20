@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HERO_DROP } from '../data/bestiary';
+import { BESTIARY, HERO_DROP } from '../data/bestiary';
 import { GOLD_SEAM_PAYOUT, ROOM_COST, STARTING_GOLD, sellPrice } from './economy';
 import { createGame, damage, digTile, looseGold, markDig, paintRoom, payWages, spawn, treasuryCapacity, treasurySpace, vaultGold } from './game';
 import { Tile, isMarked, setTile, tileAt } from './grid';
@@ -135,11 +135,12 @@ describe('economy', () => {
   it('payday draws wages; the unpaid grow angry, then leave', () => {
     const s = createGame(39);
     const hound = spawn(s, 'cwn', { x: 2, y: 7 });
-    s.gold = 25;
+    const wage = BESTIARY.cwn.stats.wage;
+    s.gold = wage + 5;
     payWages(s);
     expect(s.gold).toBe(5);
     expect(hound.unpaid).toBe(0);
-    expect(s.log.at(-1)?.text).toMatch(/Payday\. 20 gold paid/);
+    expect(s.log.at(-1)?.text).toMatch(new RegExp(`Payday\\. ${wage} gold paid`));
     payWages(s);
     expect(hound.unpaid).toBe(1);
     expect(s.entities).toContain(hound);

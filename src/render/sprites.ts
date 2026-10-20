@@ -6,7 +6,7 @@
  * To swap in a real sprite sheet later, implement `BeastRenderer` and pass it
  * to `setBeastRenderer`. Nothing else needs to change.
  */
-import type { BeastKind } from '../data/bestiary';
+import type { BeastKind, EngineKind } from '../data/bestiary';
 
 export interface BeastPose {
   /** Animation clock in seconds. */
@@ -76,6 +76,13 @@ const C = {
   fair: '#e8e2cf',
   fairGold: '#d8b85a',
   fairGreen: '#4f7f63',
+  lordSteel: '#b8bcc4',
+  lordBlue: '#2f4f8f',
+  lordGold: '#d8b85a',
+  levyShirt: '#8a6a4a',
+  levyCap: '#5a4a3a',
+  relicSilver: '#d6dbe3',
+  relicRobe: '#6b5a7a',
 } as const;
 
 const FIGURES: Record<BeastKind, readonly Rect[]> = {
@@ -188,6 +195,44 @@ const FIGURES: Record<BeastKind, readonly Rect[]> = {
     r(4, 10, 1, 3, C.steel),
     r(7, 10, 1, 3, C.steel),
   ],
+  lord: [
+    r(4, 0, 4, 1, C.lordGold),
+    r(4, 1, 4, 3, C.lordSteel),
+    r(7, 2, 1, 1, C.ink),
+    r(3, 4, 6, 6, C.lordSteel),
+    r(4, 5, 4, 4, C.lordBlue),
+    r(5, 6, 2, 2, C.lordGold),
+    r(1, 5, 2, 5, C.lordBlue),
+    r(1, 7, 2, 1, C.lordGold),
+    r(9, 2, 1, 7, C.iron),
+    r(8, 8, 3, 1, C.ironDark),
+    r(3, 10, 2, 3, C.steelDark),
+    r(7, 10, 2, 3, C.steelDark),
+  ],
+  levy: [
+    r(4, 1, 4, 1, C.levyCap),
+    r(4, 2, 4, 3, C.skin),
+    r(7, 3, 1, 1, C.ink),
+    r(4, 5, 4, 5, C.levyShirt),
+    r(2, 6, 2, 1, C.skin),
+    r(9, 1, 1, 9, C.wood),
+    r(8, 1, 2, 1, C.iron),
+    r(10, 2, 1, 1, C.iron),
+    r(4, 10, 1, 3, C.skinDark),
+    r(7, 10, 1, 3, C.skinDark),
+  ],
+  relic: [
+    r(4, 1, 4, 1, C.hair),
+    r(4, 2, 4, 3, C.skin),
+    r(6, 3, 2, 1, C.skinDark),
+    r(3, 5, 6, 7, C.relicRobe),
+    r(3, 7, 6, 1, C.rope),
+    r(8, 5, 4, 4, C.relicSilver),
+    r(9, 6, 2, 2, C.lordGold),
+    r(8, 5, 4, 1, C.whiteShade),
+    r(4, 12, 1, 2, C.skin),
+    r(7, 12, 1, 2, C.skin),
+  ],
   priest: [
     r(4, 1, 4, 1, C.hair),
     r(4, 2, 4, 3, C.skin),
@@ -241,4 +286,34 @@ export function drawBeast(
     sleeping: pose.sleeping ?? false,
     silhouette: pose.silhouette ?? false,
   });
+}
+
+/** Engines of the Hall, drawn on a 12x12 logical grid at `px` per pixel, centred at (cx, cy). */
+export function drawEngine(ctx: CanvasRenderingContext2D, kind: EngineKind, cx: number, cy: number, px: number, built = true): void {
+  const x0 = cx - 6 * px;
+  const y0 = cy - 6 * px;
+  const rect = (x: number, y: number, w: number, h: number, c: string): void => {
+    ctx.fillStyle = c;
+    ctx.fillRect(Math.round(x0 + x * px), Math.round(y0 + y * px), w * px, h * px);
+  };
+  ctx.globalAlpha = built ? 1 : 0.55;
+  if (kind === 'pit') {
+    rect(1, 3, 10, 7, '#0b0a12');
+    rect(2, 2, 8, 1, '#3a2f22');
+    rect(1, 10, 10, 1, '#3a2f22');
+    for (let i = 0; i < 4; i++) rect(2 + i * 2, 4, 1, 5, '#5a4a3a');
+  } else if (kind === 'boulder') {
+    rect(3, 1, 6, 10, '#5b5560');
+    rect(1, 3, 10, 6, '#5b5560');
+    rect(4, 2, 3, 3, '#7a7480');
+    rect(2, 8, 7, 2, '#3b3640');
+  } else {
+    rect(1, 5, 10, 2, '#9ea4ad');
+    rect(1, 3, 2, 6, '#9ea4ad');
+    rect(9, 3, 2, 6, '#9ea4ad');
+    rect(5, 4, 2, 4, '#6b7079');
+    rect(3, 2, 1, 1, '#c9d3e8');
+    rect(8, 9, 1, 1, '#c9d3e8');
+  }
+  ctx.globalAlpha = 1;
 }

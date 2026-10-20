@@ -2,7 +2,7 @@ import { createBoardView, drawBoard, entityAt } from './render/board';
 import { TILE } from './render/tiles';
 import { nudge } from './sim/ai';
 import type { Entity } from './sim/entities';
-import { type GameState, type Pages, createGame, emissary, freshPages, markDig, paintRoom, trade } from './sim/game';
+import { type GameState, type Pages, createGame, emissary, freshPages, markDig, paintRoom, planTrap, trade } from './sim/game';
 import { GRID_H, GRID_W, Tile, type Vec, inBounds, isMarked, isRock, tileAt } from './sim/grid';
 import { TICK, advance } from './sim/index';
 import { createCaveAudio } from './ui/audio';
@@ -11,7 +11,7 @@ import { createHud } from './ui/hud';
 import { createLog } from './ui/log';
 import { createManual } from './ui/manual';
 import { createOverlay } from './ui/overlay';
-import { SPEEDS, TOOL_KEYS, TOOL_ROOM, type Tool, createToolbar } from './ui/toolbar';
+import { SPEEDS, TOOL_KEYS, TOOL_ROOM, type Tool, createToolbar, isTrapTool } from './ui/toolbar';
 import { createTooltip } from './ui/tooltip';
 
 /** Press-and-hold this long on touch to get the right-click action. */
@@ -99,8 +99,12 @@ function main(): void {
       } else setPaused(false);
     },
   });
+  const pickTool = (tool: Tool): void => {
+    toolbar.setActive(tool);
+    if (isTrapTool(tool)) manual.openEngine(tool);
+  };
   const toolbar = createToolbar({
-    onTool: (tool) => toolbar.setActive(tool),
+    onTool: pickTool,
     onSound: () => {
       void audio.toggle().then((on) => toolbar.setSound(on));
     },
@@ -149,6 +153,10 @@ function main(): void {
     }
     if (tool === 'dig') {
       markDig(state, p.x, p.y, secondary ? false : digMode);
+      return;
+    }
+    if (isTrapTool(tool)) {
+      if (firstClick) planTrap(state, p.x, p.y, tool);
       return;
     }
     const room = TOOL_ROOM[tool];
@@ -252,7 +260,7 @@ function main(): void {
       return;
     }
     for (const tool of Object.keys(TOOL_KEYS) as Tool[]) {
-      if (TOOL_KEYS[tool] === key) toolbar.setActive(tool);
+      if (TOOL_KEYS[tool] === key) pickTool(tool);
     }
   });
 

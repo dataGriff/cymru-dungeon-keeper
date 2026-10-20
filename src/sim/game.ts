@@ -1,7 +1,20 @@
-import { BESTIARY, BESTIARY_ORDER, HERO_DROP, TRADES, type BeastKind, type TradeKind, WARD_SECONDS } from '../data/bestiary';
+import {
+  BESTIARY,
+  BESTIARY_ORDER,
+  ENGINES,
+  type EngineKind,
+  HERO_DROP,
+  type HeroKind,
+  TRADES,
+  type BeastKind,
+  type TradeKind,
+  WARD_SECONDS,
+} from '../data/bestiary';
+import { CAIRN, type WaveSchedule } from '../data/waves';
 import {
   GOLD_SEAM_PAYOUT,
   HEART_HP,
+  FIRST_PAYDAY,
   PAY_INTERVAL,
   ROOM_COST,
   STARTING_GOLD,
@@ -10,7 +23,7 @@ import {
   UNPAID_TOLERANCE,
   sellPrice,
 } from './economy';
-import { type Drop, type Entity, isCreature, isFair, isHero, spawnEntity } from './entities';
+import { type Boulder, type Drop, type Entity, type Trap, isCreature, isFair, isHero, spawnEntity } from './entities';
 import {
   GATE_POS,
   type Grid,
@@ -20,11 +33,13 @@ import {
   Tile,
   type Vec,
   createStartGrid,
+  gatesOf,
   inBounds,
   isCorridor,
   isMarked,
   isRock,
   isRoom,
+  isWalkable,
   largestRegion,
   regionsOf,
   setMarked,
@@ -32,7 +47,7 @@ import {
   tileAt,
 } from './grid';
 import { type Rng, mulberry32 } from './rng';
-import { FINAL_WAVE, WAVE_INTERVAL, WAVE_STAGGER, waveComposition, waveTime } from './waves';
+import { WAVE_STAGGER } from './waves';
 
 export type Status = 'playing' | 'won' | 'lost';
 
@@ -72,11 +87,23 @@ export interface GameState {
   entities: Entity[];
   /** Loose gold on the floor, waiting for a Coblyn (or a thief). */
   drops: Drop[];
+  /** The level's waves. */
+  schedule: WaveSchedule;
+  /** Every Gate on the map; wave specs index into it. */
+  gates: Vec[];
   /** Waves that have been announced so far. */
   wave: number;
+  /** When the next wave is announced, or Infinity after the last. */
   nextWaveAt: number;
   /** Heroes still queued to step through the Gate for the current wave. */
-  pendingHeroes: BeastKind[];
+  pendingHeroes: HeroKind[];
+  /** Which Gate the pending heroes use. */
+  pendingGate: number;
+  /** Mortals slain and mortals who lost their nerve and left. */
+  slain: number;
+  fled: number;
+  traps: Trap[];
+  boulders: Boulder[];
   spawnTimer: number;
   arrivalTimer: number;
   payTimer: number;
@@ -102,10 +129,15 @@ export const ARRIVAL_INTERVAL = 7;
 export const MAX_LOG = 40;
 export const MAX_MAP_CHANGES = 64;
 
-export function createGame(seed = Date.now() & 0xffffffff, pages: Pages = freshPages()): GameState {
+export const finalWave = (s: GameState): number => s.schedule.waves.length;
+
+export function createGame(seed = Date.now() & 0xffffffff, pages: Pages = freshPages(), schedule: WaveSchedule = CAIRN): GameState {
   const rng = mulberry32(seed);
+  const grid = createStartGrid(rng);
   const s: GameState = {
-    grid: createStartGrid(rng),
+    grid,
+    gates: gatesOf(grid),
+    schedule,
     rng,
     time: 0,
     gold: STARTING_GOLD,
@@ -115,11 +147,16 @@ export function createGame(seed = Date.now() & 0xffffffff, pages: Pages = freshP
     entities: [],
     drops: [],
     wave: 0,
-    nextWaveAt: waveTime(1),
+    nextWaveAt: schedule.waves[0]?.at ?? Infinity,
     pendingHeroes: [],
+    pendingGate: 0,
+    slain: 0,
+    fled: 0,
+    traps: [],
+    boulders: [],
     spawnTimer: 0,
     arrivalTimer: ARRIVAL_INTERVAL,
-    payTimer: PAY_INTERVAL,
+    payTimer: FIRST_PAYDAY,
     log: [],
     nextId: 1,
     mapVersion: 0,
@@ -313,20 +350,40 @@ export function damage(s: GameState, target: Entity, amount: number): void {
   if (target.hp > 0) return;
   removeEntity(s, target);
   const at = { x: Math.round(target.x), y: Math.round(target.y) };
-  if (target.kind === 'knight' || target.kind === 'priest') {
-    studyPage(s, target.kind);
-    const gold = HERO_DROP[target.kind] + target.carrying;
+  if (isHero(target)) {
+    const kind = target.kind as HeroKind;
+    studyPage(s, kind);
+    s.slain += 1;
+    const gold = HERO_DROP[kind] + target.carrying;
     dropGold(s, at, gold);
-    addLog(
-      s,
-      target.kind === 'knight'
-        ? `The knight's plume is in the dirt. ${gold} gold spills from his purse.`
-        : `The hedge-priest has stopped talking. ${gold} gold found in his sandal.`,
-    );
+    addLog(s, DEATH_LOG[kind](gold));
+    // The levy's nerve goes with the first of them to fall.
+    if (kind === 'levy') {
+      for (const o of s.entities) if (o.kind === 'levy') o.morale = 0;
+    }
+    // Allies who saw it lose heart.
+    for (const o of s.entities) {
+      if (isHero(o) && Math.hypot(o.x - target.x, o.y - target.y) <= 6) o.morale = Math.max(0, o.morale - 25);
+    }
   } else {
     dropGold(s, at, target.carrying);
     addLog(s, `The hall is quieter. A ${BESTIARY[target.kind].name} has been slain.`);
   }
+}
+
+const DEATH_LOG: Record<HeroKind, (gold: number) => string> = {
+  knight: (g) => `The knight's plume is in the dirt. ${g} gold spills from his purse.`,
+  priest: (g) => `The hedge-priest has stopped talking. ${g} gold found in his sandal.`,
+  lord: (g) => `The Cantref Lord is down, and a hundred farms are suddenly for sale. ${g} gold in his purse.`,
+  levy: (g) => `A levy falls, and the rest remember their farms. ${g} gold and a billhook.`,
+  relic: (g) => `The reliquary bearer drops, and the box with him. The hush lifts. ${g} gold.`,
+};
+
+/** A mortal whose nerve is gone reaches the Gate and leaves with what he carries. */
+export function heroFlees(s: GameState, e: Entity): void {
+  removeEntity(s, e);
+  s.fled += 1;
+  addLog(s, `The ${BESTIARY[e.kind].name} has had enough and is gone up the stair${e.carrying > 0 ? ` with ${e.carrying} of your gold` : ''}.`);
 }
 
 export function strikeHeart(s: GameState, e: Entity): void {
@@ -384,6 +441,9 @@ export const ARRIVAL_LOG: Record<BeastKind, string> = {
   teg: 'A courtesy at the portal. An emissary of the Tylwyth Teg has terms, if the steward has a minute.',
   knight: 'Boots on the stair. A Mortal Knight is in the hall.',
   priest: 'A psalm, badly sung. A Hedge-Priest is in the hall.',
+  lord: 'A banner, and a man who expects the banner to be enough. The Cantref Lord is in the hall.',
+  levy: 'Singing on the stair. The levy is in the hall, and has not yet noticed.',
+  relic: 'A silence walks in. The reliquary bearer is in the hall.',
 };
 
 /**
@@ -460,22 +520,29 @@ function tickWages(s: GameState, dt: number): void {
 
 // ---------- waves ----------
 
+/** The next wave's composition, for the HUD preview; empty after the last. */
+export const nextWave = (s: GameState): HeroKind[] => s.schedule.waves[s.wave]?.heroes ?? [];
+
 function tickWaves(s: GameState, dt: number): void {
-  if (s.wave < FINAL_WAVE && s.time >= s.nextWaveAt) {
+  const spec = s.schedule.waves[s.wave];
+  if (spec && s.time >= spec.at) {
     s.wave += 1;
-    s.nextWaveAt += WAVE_INTERVAL;
-    s.pendingHeroes.push(...waveComposition(s.wave));
+    s.nextWaveAt = s.schedule.waves[s.wave]?.at ?? Infinity;
+    s.pendingHeroes.push(...spec.heroes);
+    s.pendingGate = Math.min(spec.gate, Math.max(0, s.gates.length - 1));
     s.spawnTimer = 0;
     s.waveActive = true;
-    addLog(s, `Boots on the stair. Wave ${s.wave}: ${s.pendingHeroes.length} mortals at the Gate.`);
+    const where = s.gates.length > 1 ? ` at the ${['west', 'east', 'third', 'fourth'][s.pendingGate] ?? ''} Gate`.replace('  ', ' ') : ' at the Gate';
+    addLog(s, `Boots on the stair. Wave ${s.wave}: ${s.pendingHeroes.length} mortals${where}.`);
   }
   if (s.pendingHeroes.length > 0 && !warded(s)) {
     s.spawnTimer -= dt;
     if (s.spawnTimer <= 0) {
       s.spawnTimer = WAVE_STAGGER;
-      const kind = s.pendingHeroes.shift() as BeastKind;
-      const e = spawn(s, kind, GATE_POS);
-      e.facing = -1;
+      const kind = s.pendingHeroes.shift() as HeroKind;
+      const gate = s.gates[s.pendingGate] ?? GATE_POS;
+      const e = spawn(s, kind, gate);
+      e.facing = gate.x > s.grid.w / 2 ? -1 : 1;
     }
   }
 }
@@ -485,7 +552,7 @@ function checkWaveCleared(s: GameState): void {
   if (!s.waveActive || s.pendingHeroes.length > 0 || heroCount(s) > 0) return;
   s.waveActive = false;
   for (const e of s.entities) if (isCreature(e)) studyPage(s, e.kind);
-  if (s.wave < FINAL_WAVE) addLog(s, 'The stair is quiet again. The hall counts its wounds and its gold.');
+  if (s.wave < finalWave(s)) addLog(s, 'The stair is quiet again. The hall counts its wounds and its gold.');
 }
 
 function checkEnd(s: GameState): void {
@@ -493,7 +560,101 @@ function checkEnd(s: GameState): void {
     s.status = 'lost';
     return;
   }
-  if (s.wave >= FINAL_WAVE && s.pendingHeroes.length === 0 && heroCount(s) === 0) s.status = 'won';
+  if (s.wave >= finalWave(s) && s.pendingHeroes.length === 0 && heroCount(s) === 0) s.status = 'won';
+}
+
+// ---------- engines of the hall ----------
+
+export type TrapResult = 'planned' | 'cancelled' | 'poor' | 'blocked';
+
+export const trapAt = (s: GameState, x: number, y: number): Trap | undefined =>
+  s.traps.find((t) => t.x === x && t.y === y);
+
+/**
+ * Plan a trap on a floor tile, paying for it; a Coblyn builds it. Planning on
+ * an unbuilt trap cancels it and refunds. Built traps cannot be moved.
+ */
+export function planTrap(s: GameState, x: number, y: number, kind: EngineKind): TrapResult {
+  if (!inBounds(s.grid, x, y)) return 'blocked';
+  const existing = trapAt(s, x, y);
+  if (existing) {
+    if (existing.built) return 'blocked';
+    s.traps.splice(s.traps.indexOf(existing), 1);
+    s.gold += ENGINES[existing.kind].stats.cost;
+    s.purse = Math.min(s.purse, s.gold) + ENGINES[existing.kind].stats.cost;
+    return 'cancelled';
+  }
+  if (tileAt(s.grid, x, y) !== Tile.Floor) return 'blocked';
+  if (!spend(s, ENGINES[kind].stats.cost)) return 'poor';
+  s.traps.push({ id: s.nextId++, kind, x, y, progress: 0, built: false });
+  return 'planned';
+}
+
+/** A mortal (or the emissary) sets foot on a built trap. */
+export function springTrap(s: GameState, trap: Trap, e: Entity): void {
+  const st = ENGINES[trap.kind].stats;
+  if (trap.kind === 'pit') {
+    s.traps.splice(s.traps.indexOf(trap), 1);
+    addLog(s, `The ${BESTIARY[e.kind].name} goes into the pit to the waist, and comes out slower.`);
+    damage(s, e, st.damage);
+    e.slow = st.effect;
+  } else if (trap.kind === 'snare') {
+    s.traps.splice(s.traps.indexOf(trap), 1);
+    if (isFair(e)) {
+      offendEmissary(s, e, 'struck');
+      return;
+    }
+    e.held = st.effect;
+    addLog(s, `Cold iron closes on the ${BESTIARY[e.kind].name}'s ankle. Four seconds is a long time.`);
+  }
+}
+
+const DIRS: readonly Vec[] = [
+  { x: 1, y: 0 },
+  { x: -1, y: 0 },
+  { x: 0, y: 1 },
+  { x: 0, y: -1 },
+];
+
+/** An armed boulder rolls when a mortal stands in a straight open line from it. */
+function tickBoulders(s: GameState, dt: number): void {
+  const range = ENGINES.boulder.stats.effect;
+  for (const trap of [...s.traps]) {
+    if (trap.kind !== 'boulder' || !trap.built) continue;
+    for (const d of DIRS) {
+      let hit = false;
+      for (let i = 1; i <= range; i++) {
+        const x = trap.x + d.x * i;
+        const y = trap.y + d.y * i;
+        if (!inBounds(s.grid, x, y) || !isWalkable(tileAt(s.grid, x, y))) break;
+        if (s.entities.some((e) => isHero(e) && Math.round(e.x) === x && Math.round(e.y) === y)) {
+          hit = true;
+          break;
+        }
+      }
+      if (hit) {
+        s.traps.splice(s.traps.indexOf(trap), 1);
+        s.boulders.push({ x: trap.x, y: trap.y, dx: d.x, dy: d.y, travelled: 0 });
+        addLog(s, 'The wedge is kicked. The boulder has somewhere to be.');
+        break;
+      }
+    }
+  }
+  const speed = 5;
+  for (const b of [...s.boulders]) {
+    const step = speed * dt;
+    b.x += b.dx * step;
+    b.y += b.dy * step;
+    b.travelled += step;
+    const tx = Math.round(b.x);
+    const ty = Math.round(b.y);
+    for (const e of [...s.entities]) {
+      if (isHero(e) && Math.abs(e.x - b.x) < 0.6 && Math.abs(e.y - b.y) < 0.6) damage(s, e, ENGINES.boulder.stats.damage * dt * 4);
+    }
+    if (b.travelled >= range || !inBounds(s.grid, tx + b.dx, ty + b.dy) || !isWalkable(tileAt(s.grid, tx + b.dx, ty + b.dy))) {
+      s.boulders.splice(s.boulders.indexOf(b), 1);
+    }
+  }
 }
 
 // ---------- the step ----------
@@ -508,11 +669,14 @@ export function step(s: GameState, dt: number, update: EntityUpdater): void {
   tickArrivals(s, dt);
   tickWages(s, dt);
   tickWaves(s, dt);
+  tickBoulders(s, dt);
   for (const e of [...s.entities]) {
     if (!s.entities.includes(e)) continue;
     e.px = e.x;
     e.py = e.y;
     e.flash = Math.max(0, e.flash - dt);
+    e.slow = Math.max(0, e.slow - dt);
+    e.held = Math.max(0, e.held - dt);
     e.cooldown = Math.max(0, e.cooldown - dt);
     e.repath = Math.max(0, e.repath - dt);
     update(s, e, dt);

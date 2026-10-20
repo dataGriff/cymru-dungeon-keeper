@@ -17,7 +17,8 @@ export const sellPrice = (room: RoomTile): number => Math.floor(ROOM_COST[room] 
 /** Gold one Treasury tile holds; a tile in a region of 4+ holds more. */
 export const TREASURY_BASE_CAPACITY = 50;
 export const TREASURY_REGION_BONUS = 10;
-/** Payday comes round this often. */
+/** Payday comes round this often; the first one waits until the steward has met a wave. */
 export const PAY_INTERVAL = 60;
+export const FIRST_PAYDAY = 90;
 /** How many unpaid paydays a creature tolerates: angry after the first, gone on the second. */
 export const UNPAID_TOLERANCE = 2;

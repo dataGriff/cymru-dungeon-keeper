@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, heroCount, spawn } from './game';
+import { createGame, finalWave, heroCount, spawn } from './game';
 import { GATE_POS } from './grid';
 import { tick } from './index';
-import { FINAL_WAVE, FIRST_WAVE_AT, WAVE_INTERVAL, waveComposition, waveTime } from './waves';
+import { FIRST_WAVE_AT, WAVE_INTERVAL, waveComposition, waveTime } from './waves';
 
 const run = (s: ReturnType<typeof createGame>, seconds: number, dt = 0.1): void => {
   for (let t = 0; t < seconds - 1e-9; t += dt) tick(s, dt);
@@ -51,7 +51,7 @@ describe('waves', () => {
 
   it('is won when wave 3 is cleared with no mortal left standing', () => {
     const s = createGame(23);
-    s.wave = FINAL_WAVE;
+    s.wave = finalWave(s);
     s.pendingHeroes = [];
     const k = spawn(s, 'knight', GATE_POS);
     tick(s, 0.1);
@@ -64,7 +64,7 @@ describe('waves', () => {
 
   it('is not won while wave 3 heroes are still queued at the Gate', () => {
     const s = createGame(24);
-    s.wave = FINAL_WAVE;
+    s.wave = finalWave(s);
     s.pendingHeroes = ['knight'];
     s.spawnTimer = 5;
     tick(s, 0.1);

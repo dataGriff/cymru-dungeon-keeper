@@ -18,7 +18,8 @@ export type Task =
   | 'hold'
   | 'nudge'
   | 'retreat'
-  | 'leave';
+  | 'leave'
+  | 'build';
 
 /** How a creature feels, derived each tick and shown as a glyph. */
 export type Mood = 'content' | 'hungry' | 'tired' | 'angry' | 'afraid';
@@ -67,6 +68,34 @@ export interface Entity {
   temper: number;
   /** Seconds the emissary will stay, or a creature's retreat timer. */
   stay: number;
+  /** A mortal's nerve, 0..100. At zero he runs for the Gate. */
+  morale: number;
+  /** Seconds of slowed movement left (a pit). */
+  slow: number;
+  /** Seconds held fast (a snare). */
+  held: number;
+  /** Has this mortal already lost his nerve to the Afanc? */
+  metAfanc: boolean;
+}
+
+/** A trap, planned or built. */
+export interface Trap {
+  id: number;
+  kind: import('../data/bestiary').EngineKind;
+  x: number;
+  y: number;
+  /** 0..1 of a Coblyn's building time done. */
+  progress: number;
+  built: boolean;
+}
+
+/** A boulder in flight. */
+export interface Boulder {
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+  travelled: number;
 }
 
 export interface Drop {
@@ -114,6 +143,10 @@ export function spawnEntity(id: number, kind: BeastKind, at: Vec): Entity {
     mood: 'content',
     temper: 0,
     stay: 0,
+    morale: 100,
+    slow: 0,
+    held: 0,
+    metAfanc: false,
   };
 }
 

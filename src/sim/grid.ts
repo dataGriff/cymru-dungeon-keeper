@@ -95,6 +95,9 @@ export function markedTiles(g: Grid): Vec[] {
   return out;
 }
 
+/** Every Gate on the map, left to right, top to bottom. Wave specs index into this. */
+export const gatesOf = (g: Grid): Vec[] => tilesOf(g, Tile.Gate);
+
 /** A corridor tile: walkable, with at most two walkable neighbours. The Gwyllgi holds these. */
 export function isCorridor(g: Grid, x: number, y: number): boolean {
   if (!isWalkable(tileAt(g, x, y))) return false;

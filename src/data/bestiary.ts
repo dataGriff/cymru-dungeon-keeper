@@ -3,7 +3,19 @@
  * The manual panel, the sim and the printable manual (later) all read from it.
  */
 
-export type BeastKind = 'coblyn' | 'cwn' | 'pwca' | 'gwyllgi' | 'ceffyl' | 'afanc' | 'teg' | 'knight' | 'priest';
+export type BeastKind =
+  | 'coblyn'
+  | 'cwn'
+  | 'pwca'
+  | 'gwyllgi'
+  | 'ceffyl'
+  | 'afanc'
+  | 'teg'
+  | 'knight'
+  | 'priest'
+  | 'lord'
+  | 'levy'
+  | 'relic';
 
 export type Appetite = 'none' | 'low' | 'high' | 'ruinous';
 /** The hall's own, the mortals who come for the Heart, or the Fair Folk who come for terms. */
@@ -66,7 +78,7 @@ export const BESTIARY: Record<BeastKind, BeastEntry> = {
       'Eats often. A starving hound will leave for the hunt and not return.',
       'Rushes the nearest mortal on sight. Keep your Lair between the Gate and the Heart.',
     ],
-    stats: { hp: 34, attack: 4, speed: 2.6, wage: 20, appetite: 'high', allegiance: 'hall' },
+    stats: { hp: 34, attack: 4, speed: 2.6, wage: 8, appetite: 'high', allegiance: 'hall' },
   },
   pwca: {
     kind: 'pwca',
@@ -79,7 +91,7 @@ export const BESTIARY: Record<BeastKind, BeastEntry> = {
       'Fast and fragile. Trades blows badly with knights, well with pilgrims.',
       'Skims a coin from the Treasury now and then. The manual recommends you do not count.',
     ],
-    stats: { hp: 18, attack: 3, speed: 3.6, wage: 10, appetite: 'low', allegiance: 'hall' },
+    stats: { hp: 18, attack: 3, speed: 3.6, wage: 4, appetite: 'low', allegiance: 'hall' },
   },
   afanc: {
     kind: 'afanc',
@@ -92,7 +104,7 @@ export const BESTIARY: Record<BeastKind, BeastEntry> = {
       'Slow. Position it near the Heart and let the mortals come to it.',
       'Eats a Hatchery bare in a single sitting. Build two.',
     ],
-    stats: { hp: 90, attack: 9, speed: 1.3, wage: 60, appetite: 'ruinous', allegiance: 'hall' },
+    stats: { hp: 90, attack: 9, speed: 1.3, wage: 30, appetite: 'ruinous', allegiance: 'hall' },
   },
   gwyllgi: {
     kind: 'gwyllgi',
@@ -105,7 +117,7 @@ export const BESTIARY: Record<BeastKind, BeastEntry> = {
       'Holds the road: takes half damage standing in a corridor. Give it one.',
       'Slow to anger. It will not leave its post for a mortal more than four tiles off.',
     ],
-    stats: { hp: 50, attack: 5, speed: 2.0, wage: 25, appetite: 'high', allegiance: 'hall' },
+    stats: { hp: 50, attack: 5, speed: 2.0, wage: 12, appetite: 'high', allegiance: 'hall' },
   },
   ceffyl: {
     kind: 'ceffyl',
@@ -118,7 +130,7 @@ export const BESTIARY: Record<BeastKind, BeastEntry> = {
       'Charges, strikes, breaks off. Long corridors suit it; so does a second Pool.',
       'Dislikes the Afanc. Two Pools, or one of them sulks.',
     ],
-    stats: { hp: 40, attack: 6, speed: 4.0, wage: 30, appetite: 'high', allegiance: 'hall' },
+    stats: { hp: 40, attack: 6, speed: 4.0, wage: 15, appetite: 'high', allegiance: 'hall' },
   },
   teg: {
     kind: 'teg',
@@ -159,10 +171,65 @@ export const BESTIARY: Record<BeastKind, BeastEntry> = {
     ],
     stats: { hp: 22, attack: 3, speed: 2.2, wage: 0, appetite: 'none', allegiance: 'mortal' },
   },
+  lord: {
+    kind: 'lord',
+    name: 'Cantref Lord',
+    gloss: 'A lord of a hundred farms, come to collect.',
+    flavour:
+      'He holds a cantref above and intends to hold one below. He is slow, heavy, and used to doors being opened for him, which the hall does not do, so he opens them with his shield. He does not waste himself on Coblynau. He walks straight at whatever in the hall looks most like a rival and settles the matter there, and if the hall\'s best creature is sleeping he will wait politely until it wakes.',
+    notes: [
+      'Goes for your strongest creature, not the nearest. Let the hounds soften him first.',
+      'Heavily armoured and slow. Pits and snares were made for him.',
+      "Drops a lord's purse: 60 gold. Worth the trouble.",
+    ],
+    stats: { hp: 70, attack: 7, speed: 1.6, wage: 0, appetite: 'none', allegiance: 'mortal' },
+  },
+  levy: {
+    kind: 'levy',
+    name: 'Cwrw-drunk Levy',
+    gloss: 'A farmhand with a billhook and three pints in him.',
+    flavour:
+      'The lord brought twenty of them and nineteen are still deciding. They come down the stair singing, because they were told the hall was empty, and they stop singing at roughly the same moment. Alone, a levy is nothing. In a crowd he is nothing multiplied, until the first of them dies, at which point the arithmetic reverses and the whole crowd remembers it has a farm to get back to.',
+    notes: [
+      'Weak, cheap, and many. Waves bring them in handfuls.',
+      'Panics when the first levy falls; the rest run for the Gate. Kill one loudly.',
+      'Drops six gold and a billhook nobody wants.',
+    ],
+    stats: { hp: 16, attack: 2, speed: 2.4, wage: 0, appetite: 'none', allegiance: 'mortal' },
+  },
+  relic: {
+    kind: 'relic',
+    name: "Saint's Reliquary bearer",
+    gloss: 'A finger-bone in a box, and the man who carries it.',
+    flavour:
+      "The box is silver and the bone is a saint's, or so the man was told, and it makes no difference to the hall whether it is true: near the relic, the hall's creatures cannot bring themselves to bite. The bearer has no weapon and does not need one. He walks to the Heart with his eyes shut, and everything that should stop him stands aside and watches.",
+    notes: [
+      'No attack, but no creature within two and a half tiles of him will fight.',
+      "Kill the bearer first, from outside the circle: the Ceffyl Dŵr's charge, or a boulder.",
+      'The relic drops with him. 20 gold and a lesson.',
+    ],
+    stats: { hp: 30, attack: 0, speed: 1.8, wage: 0, appetite: 'none', allegiance: 'mortal' },
+  },
 };
 
 /** Manual page order: the six tabs, left to right. */
-export const BESTIARY_ORDER: readonly BeastKind[] = ['coblyn', 'cwn', 'pwca', 'gwyllgi', 'ceffyl', 'afanc', 'teg', 'knight', 'priest'];
+export const BESTIARY_ORDER: readonly BeastKind[] = [
+  'coblyn',
+  'cwn',
+  'pwca',
+  'gwyllgi',
+  'ceffyl',
+  'afanc',
+  'teg',
+  'knight',
+  'priest',
+  'lord',
+  'levy',
+  'relic',
+];
+
+/** Mortal kinds, for wave schedules. */
+export type HeroKind = 'knight' | 'priest' | 'lord' | 'levy' | 'relic';
 
 /** The running header starts at this page and increments per entry. */
 export const MANUAL_FIRST_PAGE = 14;
@@ -191,4 +258,73 @@ export type TradeKind = keyof typeof TRADES;
 export const WARD_SECONDS = 30;
 
 /** Gold a dead hero leaves on the floor. */
-export const HERO_DROP: Record<'knight' | 'priest', number> = { knight: 30, priest: 12 };
+export const HERO_DROP: Record<HeroKind, number> = { knight: 30, priest: 12, lord: 60, levy: 6, relic: 20 };
+
+/** How far the relic's hush reaches: no creature inside it will fight. */
+export const RELIC_RADIUS = 2.5;
+
+// ---------- Engines of the Hall ----------
+
+export type EngineKind = 'pit' | 'boulder' | 'snare';
+
+export interface EngineEntry {
+  kind: EngineKind;
+  name: string;
+  gloss: string;
+  flavour: string;
+  notes: readonly string[];
+  stats: {
+    cost: number;
+    /** Seconds of a Coblyn's time to build. */
+    build: number;
+    /** Damage dealt (pit, boulder) or per second held (snare). */
+    damage: number;
+    /** Seconds of slow (pit) or hold (snare); tiles of travel (boulder). */
+    effect: number;
+  };
+}
+
+export const ENGINES: Record<EngineKind, EngineEntry> = {
+  pit: {
+    kind: 'pit',
+    name: 'Pit',
+    gloss: 'A hole with opinions.',
+    flavour:
+      'Dug by the Coblynau in an evening and covered with a lattice of lath and loose earth. A mortal who steps on it goes down to the waist, loses his dignity and some blood, and climbs out slower than he went in. The hall fills it in afterwards; a pit only works once, which is one more time than most plans.',
+    notes: [
+      "20 gold and a Coblyn's time. One use.",
+      'Hurts and slows. Put it where the knight has no choice but to step.',
+      'Your own creatures know where it is. Mortals do not.',
+    ],
+    stats: { cost: 20, build: 3, damage: 8, effect: 3 },
+  },
+  boulder: {
+    kind: 'boulder',
+    name: 'Boulder',
+    gloss: 'A round stone with somewhere to be.',
+    flavour:
+      'Rolled into place at the top of a straight corridor and held by a wedge the Coblynau know how to kick. When a mortal comes down the corridor the wedge goes and so does the stone. It does not stop for anyone. It also does not turn corners, which is worth remembering when laying corridors.',
+    notes: [
+      '35 gold. Needs a straight run of floor; it rolls up to eight tiles.',
+      'Crushes everything mortal in its path. Your creatures step aside; the mortals do not.',
+      'One use. The stone stays where it stops.',
+    ],
+    stats: { cost: 35, build: 4, damage: 20, effect: 8 },
+  },
+  snare: {
+    kind: 'snare',
+    name: 'Cold iron snare',
+    gloss: 'Iron, and cold, and waiting.',
+    flavour:
+      "Fair Folk cannot abide cold iron and neither, it turns out, can a knight's ankle. The snare bites and holds for a count of four, and in the hall four seconds is a long time to stand still. Lay it on the Heart's threshold and the hounds will do the rest. Do not lay it where the emissary walks.",
+    notes: [
+      '25 gold. Holds a mortal fast for four seconds.',
+      'Hurts the Fair Folk too. The emissary will not forgive it.',
+      'One use. The Coblynau reset nothing.',
+    ],
+    stats: { cost: 25, build: 3, damage: 1, effect: 4 },
+  },
+};
+
+export const ENGINE_ORDER: readonly EngineKind[] = ['pit', 'boulder', 'snare'];
+export const MANUAL_ENGINES_FIRST_PAGE = 31;

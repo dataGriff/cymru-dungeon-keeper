@@ -2,7 +2,7 @@
  * Behaviours. Each is a few lines on purpose: workers dig and flee, creatures
  * eat, sleep, fight and wander, heroes walk to the Heart and hit what is near.
  */
-import { BESTIARY, dislikes } from '../data/bestiary';
+import { BESTIARY, ENGINES, RELIC_RADIUS, dislikes } from '../data/bestiary';
 import { DIG_SECONDS } from './economy';
 import {
   type Entity,
@@ -24,9 +24,11 @@ import {
   depositGold,
   digTile,
   dropGold,
+  heroFlees,
   offendEmissary,
   removeEntity,
   spend,
+  springTrap,
   strikeHeart,
   treasurySpace,
   tunnelTile,
@@ -37,6 +39,7 @@ import {
   type Vec,
   dist,
   inBounds,
+  isCorridor,
   isMarked,
   isRock,
   isWalkable,
@@ -55,9 +58,9 @@ export const HUNGER_LEAVE = 40;
 export const SLEEP_AT = 20;
 export const SLEEP_RATE = 0.6;
 export const EAT_SECONDS = 1.5;
-export const EAT_HEAL = 3;
+export const EAT_HEAL = 6;
 export const NAP_SECONDS = 2.5;
-export const NAP_HEAL = 10;
+export const NAP_HEAL = 15;
 export const SWING_SECONDS = 0.8;
 export const HEART_STRIKE_SECONDS = 1;
 export const REACH = 1.15;
@@ -70,10 +73,16 @@ export const SQUABBLE_RATE = 8;
 export const SQUABBLE_LOG_GAP = 60;
 /** Below this fraction of health, a creature with a mortal nearby is afraid. */
 export const AFRAID_BELOW = 0.25;
-/** How far an angry (sulking) creature will bother to go for a mortal. */
-export const SULK_RANGE = 3;
+/** An angry creature still fights; it stews instead of knitting its wounds. */
 export const GWYLLGI_RANGE = 4;
 export const CEFFYL_RETREAT = 1.0;
+/** Morale lost per second walking a corridor, and gained near a priest. */
+export const CORRIDOR_DREAD = 1.5;
+export const PRIEST_COURAGE = 1;
+export const AFANC_DREAD = 40;
+export const PIT_SLOW = 0.4;
+/** HP per second a creature knits back together when it is not fighting. */
+export const REGEN = 0.5;
 
 // ---------- movement ----------
 
@@ -81,8 +90,9 @@ export const CEFFYL_RETREAT = 1.0;
 export function walk(s: GameState, e: Entity, dt: number): boolean {
   const next = e.path[0];
   if (!next) return true;
+  if (e.held > 0) return false;
   const onRock = isRock(tileAt(s.grid, next.x, next.y));
-  const stepLen = speedOf(e) * (onRock ? TUNNEL_SPEED : 1) * dt;
+  const stepLen = speedOf(e) * (onRock ? TUNNEL_SPEED : 1) * (e.slow > 0 ? PIT_SLOW : 1) * dt;
   const dx = next.x - e.x;
   const dy = next.y - e.y;
   const d = Math.hypot(dx, dy);
@@ -277,9 +287,29 @@ function claimed(s: GameState, rock: Vec, self: Entity): boolean {
   return s.entities.some((o) => o !== self && o.task === 'dig' && o.target?.x === rock.x && o.target?.y === rock.y);
 }
 
-/** Nearest pile (if the Treasury has room for it), else nearest unclaimed marked rock. */
+function claimedTrap(s: GameState, id: number, self: Entity): boolean {
+  return s.entities.some((o) => o !== self && o.task === 'build' && o.targetId === id);
+}
+
+/** Nearest pile (if the Treasury has room for it), else an unbuilt engine, else nearest unclaimed marked rock. */
 function findWork(s: GameState, e: Entity): boolean {
   const here = tileOf(e);
+  let bestTrap: (typeof s.traps)[number] | null = null;
+  let bestTrapD = Infinity;
+  for (const t of s.traps) {
+    if (t.built || claimedTrap(s, t.id, e)) continue;
+    const d = distBetween(here, t);
+    if (d < bestTrapD && findPath(s.grid, here, t, 'floor')) {
+      bestTrapD = d;
+      bestTrap = t;
+    }
+  }
+  if (bestTrap && setPath(s, e, bestTrap, 'floor')) {
+    e.task = 'build';
+    e.target = { x: bestTrap.x, y: bestTrap.y };
+    e.targetId = bestTrap.id;
+    return true;
+  }
   let bestDrop: Vec | null = null;
   let bestD = Infinity;
   if (treasurySpace(s) > 0) {
@@ -347,6 +377,20 @@ export function updateWorker(s: GameState, e: Entity, dt: number): void {
     }
     return;
   }
+  if (e.task === 'build') {
+    const trap = s.traps.find((t) => t.id === e.targetId);
+    if (!trap || trap.built) idle(e, 0);
+    else if (walk(s, e, dt)) {
+      trap.progress += dt / ENGINES[trap.kind].stats.build;
+      if (trap.progress >= 1) {
+        trap.progress = 1;
+        trap.built = true;
+        addLog(s, `The Coblynau have finished the ${ENGINES[trap.kind].name.toLowerCase()}. It is now a surprise.`);
+        idle(e, 0);
+      }
+    }
+    return;
+  }
   if (e.task === 'nudge' && e.target) {
     if (walk(s, e, dt)) idle(e, 0.5);
     return;
@@ -395,6 +439,9 @@ export function updateCreature(s: GameState, e: Entity, dt: number): void {
     e.sleep += SLEEP_RATE * dt;
   }
   e.temper = Math.max(0, e.temper - 0.5 * dt);
+  if (e.task !== 'chase' && e.task !== 'retreat' && e.mood !== 'angry' && e.hp < e.maxHp) {
+    e.hp = Math.min(e.maxHp, e.hp + REGEN * dt);
+  }
   squabble(s, e, dt);
   if (e.kind === 'pwca' && s.gold > 0 && s.rng() < dt / 12) spend(s, 1);
   if (e.kind === 'pwca') {
@@ -422,7 +469,14 @@ export function updateCreature(s: GameState, e: Entity, dt: number): void {
     idle(e, 0);
   }
 
-  const range = e.kind === 'gwyllgi' ? GWYLLGI_RANGE : e.mood === 'angry' ? SULK_RANGE : 7;
+  // The relic's hush: nothing near the bearer can bring itself to bite. Creatures back away from it.
+  const relic = nearest(e, s.entities, RELIC_RADIUS, (o) => o.kind === 'relic');
+  if (relic) {
+    flee(s, e, relic, dt);
+    e.task = 'hold';
+    return;
+  }
+  const range = e.kind === 'gwyllgi' ? GWYLLGI_RANGE : 7;
   const foe = nearest(e, s.entities, range, (o) => isHero(o) && !(e.kind === 'pwca' && o.kind === 'knight' && e.hp <= 10));
   if (foe) {
     const hpBefore = foe.hp;
@@ -436,7 +490,7 @@ export function updateCreature(s: GameState, e: Entity, dt: number): void {
     }
     return;
   }
-  if (e.task === 'chase') idle(e, 0);
+  if (e.task === 'chase' || e.task === 'hold') idle(e, 0);
 
   if (e.task === 'nudge' && e.target) {
     if (walk(s, e, dt)) idle(e, 0.5);
@@ -526,10 +580,63 @@ function loot(s: GameState, e: Entity): void {
   addLog(s, `The ${BESTIARY[e.kind].name} pockets ${drop.gold} gold from the floor. The manual did warn you.`);
 }
 
+/** A mortal standing on a built trap springs it. */
+function traps(s: GameState, e: Entity): void {
+  if (!atCentre(e)) return;
+  const trap = s.traps.find((t) => t.built && t.kind !== 'boulder' && t.x === e.x && t.y === e.y);
+  if (trap) springTrap(s, trap, e);
+}
+
+/** Nerve: allies falling, the Afanc, and dark corridors wear it down; a priest keeps it up. */
+function morale(s: GameState, e: Entity, dt: number): void {
+  const here = tileOf(e);
+  if (isCorridor(s.grid, here.x, here.y)) e.morale -= CORRIDOR_DREAD * dt;
+  if (!e.metAfanc && nearest(e, s.entities, 4, (o) => o.kind === 'afanc')) {
+    e.metAfanc = true;
+    e.morale -= AFANC_DREAD;
+  }
+  if (e.kind !== 'priest' && nearest(e, s.entities, 2.5, (o) => o.kind === 'priest')) e.morale += PRIEST_COURAGE * dt;
+  e.morale = Math.max(0, Math.min(100, e.morale));
+}
+
+/** Score a creature as a rival for the Cantref Lord: the biggest, hardest thing in sight. */
+const rivalScore = (o: Entity): number => o.maxHp * attackOf(o) + o.hp;
+
 export function updateHero(s: GameState, e: Entity, dt: number): void {
   loot(s, e);
+  traps(s, e);
+  if (!s.entities.includes(e)) return;
+  morale(s, e, dt);
+  if (e.morale <= 0) {
+    // Run for the nearest Gate and leave with whatever is in hand.
+    let gate = s.gates[0] ?? HEART_POS;
+    let best = Infinity;
+    for (const g of s.gates) {
+      const d = distBetween(e, g);
+      if (d < best) {
+        best = d;
+        gate = g;
+      }
+    }
+    if (e.task !== 'flee') {
+      e.task = 'flee';
+      e.path = [];
+      e.pathGoal = null;
+      addLog(s, `The ${BESTIARY[e.kind].name}'s nerve goes. He is running for the Gate.`);
+    }
+    if (distBetween(e, gate) <= 0.2) {
+      heroFlees(s, e);
+      return;
+    }
+    if (e.path.length === 0 || e.repath <= 0) {
+      e.repath = 1;
+      setPath(s, e, gate, 'hero');
+    }
+    walk(s, e, dt);
+    return;
+  }
   if (e.kind === 'priest') {
-    const knight = nearest(e, s.entities, 2.5, (o) => o.kind === 'knight');
+    const knight = nearest(e, s.entities, 2.5, (o) => o.kind === 'knight' || o.kind === 'lord' || o.kind === 'levy');
     if (knight) knight.hp = Math.min(knight.maxHp, knight.hp + PRIEST_HEAL_PER_SECOND * dt);
     const afanc = nearest(e, s.entities, 3, (o) => o.kind === 'afanc');
     if (afanc) {
@@ -537,15 +644,32 @@ export function updateHero(s: GameState, e: Entity, dt: number): void {
       return;
     }
   }
-  const foe = nearest(e, s.entities, 3, (o) => !isHero(o) && !(e.kind === 'priest' && o.kind === 'afanc'));
-  if (foe) {
-    engage(s, e, foe, dt, 'hero');
-    return;
+  if (attackOf(e) > 0) {
+    // The lord picks a rival; everyone else hits whatever is near.
+    let foe: Entity | null = null;
+    if (e.kind === 'lord') {
+      let best = -Infinity;
+      for (const o of s.entities) {
+        if (!isCreature(o) || distBetween(e, o) > 8) continue;
+        const score = rivalScore(o);
+        if (score > best) {
+          best = score;
+          foe = o;
+        }
+      }
+      if (!foe) foe = nearest(e, s.entities, 1.5, (o) => !isHero(o));
+    } else {
+      foe = nearest(e, s.entities, 3, (o) => !isHero(o) && !(e.kind === 'priest' && o.kind === 'afanc'));
+    }
+    if (foe) {
+      engage(s, e, foe, dt, 'hero');
+      return;
+    }
   }
   if (distBetween(e, HEART_POS) <= REACH) {
     e.task = 'strike';
     e.path = [];
-    if (e.cooldown <= 0) {
+    if (e.cooldown <= 0 && attackOf(e) > 0) {
       e.cooldown = HEART_STRIKE_SECONDS;
       strikeHeart(s, e);
     }

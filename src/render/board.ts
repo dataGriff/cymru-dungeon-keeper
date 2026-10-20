@@ -4,7 +4,7 @@ import { type GameState, treasuryCapacity, vaultGold, warded } from '../sim/game
 import { GATE_POS, type Vec, inBounds, isRock, markedTiles, tileAt } from '../sim/grid';
 import { drawLighting } from './lighting';
 import { PALETTE as P } from './palette';
-import { drawBeast } from './sprites';
+import { drawBeast, drawEngine } from './sprites';
 import { TILE, drawTile } from './tiles';
 
 export interface BoardView {
@@ -47,6 +47,11 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, t: number, alpha: 
     moving: e.path.length > 0,
     sleeping,
   });
+  if (e.held > 0) {
+    ctx.strokeStyle = P.gateLight;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx - 7, baseY - 6, 14, 5);
+  }
   if (e.flash > 0) {
     ctx.fillStyle = P.blood;
     ctx.globalAlpha = Math.min(1, e.flash * 4);
@@ -115,6 +120,16 @@ export function drawBoard(
   const fill = cap > 0 ? Math.min(1, vaultGold(s) / cap) : 0;
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) drawTile(ctx, g, x, y, t, fill);
   for (const d of s.drops) drawDrop(ctx, d.x, d.y, t);
+  for (const trap of s.traps) {
+    drawEngine(ctx, trap.kind, (trap.x + 0.5) * TILE, (trap.y + 0.5) * TILE, 2, trap.built);
+    if (!trap.built) {
+      ctx.fillStyle = P.hpBack;
+      ctx.fillRect(trap.x * TILE + 6, trap.y * TILE + TILE - 5, 16, 3);
+      ctx.fillStyle = P.mark;
+      ctx.fillRect(trap.x * TILE + 6, trap.y * TILE + TILE - 5, Math.round(16 * trap.progress), 3);
+    }
+  }
+  for (const b of s.boulders) drawEngine(ctx, 'boulder', (b.x + 0.5) * TILE, (b.y + 0.5) * TILE, 2);
   const sorted = [...s.entities].sort((a, b) => a.y - b.y);
   for (const e of sorted) drawEntity(ctx, e, t, alpha, e.id === selectedId);
   if (warded(s)) {
