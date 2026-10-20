@@ -22,6 +22,8 @@ const PORTRAIT_PX = 8; // 12x14 logical pixels at 8px = 96x112
 export function createManual(): Manual {
   const header = el('div', { className: 'manual-header' });
   const tabs = el('div', { className: 'manual-tabs' });
+  tabs.setAttribute('role', 'tablist');
+  tabs.setAttribute('aria-label', 'Bestiary entries');
   const portrait = el('canvas', { className: 'manual-portrait' });
   portrait.width = PORTRAIT;
   portrait.height = PORTRAIT;
@@ -54,7 +56,12 @@ export function createManual(): Manual {
     const entry = BESTIARY[kind];
     const pageNo = MANUAL_FIRST_PAGE + BESTIARY_ORDER.indexOf(kind);
     header.textContent = `BESTIARY · p. ${pageNo}`;
-    for (const [k, b] of tabButtons) b.classList.toggle('active', k === kind);
+    for (const [k, b] of tabButtons) {
+      const active = k === kind;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', String(active));
+      b.tabIndex = active ? 0 : -1;
+    }
     name.textContent = entry.name;
     gloss.textContent = entry.gloss;
     flavour.textContent = entry.flavour;
@@ -76,10 +83,31 @@ export function createManual(): Manual {
 
   for (const kind of BESTIARY_ORDER) {
     const b = el('button', { className: 'manual-tab', text: BESTIARY[kind].name });
+    b.setAttribute('role', 'tab');
     b.addEventListener('click', () => open(kind));
+    b.addEventListener('keydown', (ev) => {
+      const i = BESTIARY_ORDER.indexOf(kind);
+      const n = BESTIARY_ORDER.length;
+      const next =
+        ev.key === 'ArrowRight' || ev.key === 'ArrowDown'
+          ? BESTIARY_ORDER[(i + 1) % n]
+          : ev.key === 'ArrowLeft' || ev.key === 'ArrowUp'
+            ? BESTIARY_ORDER[(i + n - 1) % n]
+            : ev.key === 'Home'
+              ? BESTIARY_ORDER[0]
+              : ev.key === 'End'
+                ? BESTIARY_ORDER[n - 1]
+                : undefined;
+      if (!next) return;
+      ev.preventDefault();
+      open(next);
+      tabButtons.get(next)?.focus();
+    });
     tabButtons.set(kind, b);
     tabs.append(b);
   }
+  page.setAttribute('role', 'tabpanel');
+  page.setAttribute('aria-live', 'polite');
   open(current);
 
   return {

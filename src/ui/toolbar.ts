@@ -27,8 +27,11 @@ export interface Toolbar {
 export function createToolbar(onTool: (t: Tool) => void, onSound: () => void): Toolbar {
   const buttons = new Map<Tool, HTMLButtonElement>();
   const root = el('div', { className: 'toolbar' });
+  root.setAttribute('role', 'toolbar');
+  root.setAttribute('aria-label', 'Steward tools');
   for (const { tool, label, hint } of TOOLS) {
     const b = el('button', { className: 'tool', text: label, title: hint });
+    b.setAttribute('aria-label', `${label}. ${hint}`);
     b.addEventListener('click', () => onTool(tool));
     buttons.set(tool, b);
     root.append(b);
@@ -41,11 +44,15 @@ export function createToolbar(onTool: (t: Tool) => void, onSound: () => void): T
     active: 'dig',
     setActive(tool) {
       bar.active = tool;
-      for (const [k, b] of buttons) b.classList.toggle('active', k === tool);
+      for (const [k, b] of buttons) {
+        b.classList.toggle('active', k === tool);
+        b.setAttribute('aria-pressed', String(k === tool));
+      }
     },
     setSound(on) {
       sound.textContent = on ? 'Sound: on' : 'Sound: off';
       sound.classList.toggle('active', on);
+      sound.setAttribute('aria-pressed', String(on));
     },
   };
   bar.setActive('dig');
