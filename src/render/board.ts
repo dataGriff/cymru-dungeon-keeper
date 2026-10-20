@@ -2,28 +2,27 @@ import { BESTIARY } from '../data/bestiary';
 import type { Entity } from '../sim/entities';
 import { type GameState, treasuryCapacity, vaultGold, warded } from '../sim/game';
 import { GATE_POS, type Vec, inBounds, isRock, markedTiles, tileAt } from '../sim/grid';
-import { drawLighting } from './lighting';
+import { type LightingOptions, createLightMap, drawLighting } from './lighting';
 import { PALETTE as P } from './palette';
 import { drawBeast, drawEngine } from './sprites';
-import { TILE, drawTile } from './tiles';
+import { TILE, drawRubble, drawTile } from './tiles';
+import { CORPSE_SECONDS, RUBBLE_SECONDS } from '../sim/game';
 
 export interface BoardView {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   light: CanvasRenderingContext2D;
+  lighting: LightingOptions;
 }
 
 export function createBoardView(canvas: HTMLCanvasElement, w: number, h: number): BoardView {
   canvas.width = w * TILE;
   canvas.height = h * TILE;
   const ctx = canvas.getContext('2d');
-  const lightCanvas = document.createElement('canvas');
-  lightCanvas.width = canvas.width;
-  lightCanvas.height = canvas.height;
-  const light = lightCanvas.getContext('2d');
-  if (!ctx || !light) throw new Error('Canvas 2D is not available');
+  if (!ctx) throw new Error('Canvas 2D is not available');
   ctx.imageSmoothingEnabled = false;
-  return { canvas, ctx, light };
+  const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return { canvas, ctx, light: createLightMap(canvas.width, canvas.height), lighting: { reducedMotion: reduced } };
 }
 
 export const SPRITE_PX = 2;
@@ -34,6 +33,11 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, t: number, alpha: 
   const cx = (ix + 0.5) * TILE;
   const baseY = (iy + 1) * TILE - 1;
   const sleeping = e.task === 'sleep';
+  // A soft blob shadow under the feet.
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.beginPath();
+  ctx.ellipse(cx, baseY, 9, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
   if (selected) {
     ctx.strokeStyle = P.bone;
     ctx.lineWidth = 1;
@@ -41,11 +45,21 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, t: number, alpha: 
     ctx.ellipse(cx, baseY - 1, 11, 4, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
+  const action = sleeping
+    ? 'sleep'
+    : e.task === 'eat'
+      ? 'eat'
+      : (e.task === 'chase' || e.task === 'strike') && e.cooldown > 0.55
+        ? 'attack'
+        : e.path.length > 0
+          ? 'walk'
+          : 'idle';
   drawBeast(ctx, e.kind, cx, baseY, SPRITE_PX, {
     t: t + e.id,
     facing: e.facing,
     moving: e.path.length > 0,
     sleeping,
+    action,
   });
   if (e.held > 0) {
     ctx.strokeStyle = P.gateLight;
@@ -119,6 +133,12 @@ export function drawBoard(
   const cap = treasuryCapacity(g);
   const fill = cap > 0 ? Math.min(1, vaultGold(s) / cap) : 0;
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) drawTile(ctx, g, x, y, t, fill);
+  for (const r of s.rubble) drawRubble(ctx, r.x, r.y, s.time - r.t, RUBBLE_SECONDS);
+  for (const c of s.corpses) {
+    ctx.globalAlpha = Math.max(0, 1 - (s.time - c.t) / CORPSE_SECONDS);
+    drawBeast(ctx, c.kind, (c.x + 0.5) * TILE, (c.y + 1) * TILE - 1, SPRITE_PX, { facing: c.facing, action: 'dead' });
+    ctx.globalAlpha = 1;
+  }
   for (const d of s.drops) drawDrop(ctx, d.x, d.y, t);
   for (const trap of s.traps) {
     drawEngine(ctx, trap.kind, (trap.x + 0.5) * TILE, (trap.y + 0.5) * TILE, 2, trap.built);
@@ -144,7 +164,7 @@ export function drawBoard(
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
-  drawLighting(ctx, view.light, g, s.entities, t);
+  drawLighting(ctx, view.light, g, s.entities, t, view.lighting);
   // The steward's own marks stay legible in the dark: redraw them over the lighting.
   ctx.strokeStyle = P.mark;
   ctx.globalAlpha = 0.7;

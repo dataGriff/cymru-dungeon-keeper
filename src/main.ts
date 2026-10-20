@@ -1,8 +1,10 @@
 import { createBoardView, drawBoard, entityAt } from './render/board';
+import { loadSpriteSheet } from './render/sprites';
 import { TILE } from './render/tiles';
 import { nudge } from './sim/ai';
 import type { Entity } from './sim/entities';
-import { type GameState, type Pages, createGame, emissary, freshPages, markDig, paintRoom, planTrap, trade } from './sim/game';
+import { type GameState, type Pages, createGame, emissary, freshPages, markDig, paintRoom, planTrap, takeEvents, trade } from './sim/game';
+import { isHero } from './sim/entities';
 import { GRID_H, GRID_W, Tile, type Vec, inBounds, isMarked, isRock, tileAt } from './sim/grid';
 import { TICK, advance } from './sim/index';
 import { createCaveAudio } from './ui/audio';
@@ -118,7 +120,25 @@ function main(): void {
     el('p', { className: 'strap', text: 'Arawn rides with the Hunt. Keep his hall until he returns.' }),
   ]);
   const boardWrap = el('div', { className: 'board-wrap' }, [canvas, tooltip.root, overlay.root]);
-  const left = el('section', { className: 'play' }, [title, hud.root, boardWrap, toolbar.root, log.root]);
+  // Mixer: three sliders behind a disclosure.
+  const slider = (label: string, key: 'master' | 'ambient' | 'sfx'): HTMLElement => {
+    const input = el('input');
+    input.type = 'range';
+    input.min = '0';
+    input.max = '1';
+    input.step = '0.05';
+    input.value = String(audio.mixer[key]);
+    input.setAttribute('aria-label', `${label} volume`);
+    input.addEventListener('input', () => audio.setMixer({ [key]: Number(input.value) }));
+    return el('label', { className: 'mixer-row' }, [el('span', { text: label }), input]);
+  };
+  const mixer = el('details', { className: 'mixer' }, [
+    el('summary', { text: 'Mixer' }),
+    slider('Master', 'master'),
+    slider('Ambient', 'ambient'),
+    slider('Effects', 'sfx'),
+  ]);
+  const left = el('section', { className: 'play' }, [title, hud.root, boardWrap, toolbar.root, mixer, log.root]);
   app.append(el('div', { className: 'layout' }, [left, manual.root]));
 
   // ---------- input ----------
@@ -271,6 +291,11 @@ function main(): void {
     const elapsed = (now - last) / 1000;
     last = now;
     const alpha = paused ? Math.min(1, clock.acc / TICK) : advance(state, clock, elapsed, speed);
+    audio.react(takeEvents(state), (_id, x, y) => {
+      let best = Infinity;
+      for (const e of state.entities) if (isHero(e)) best = Math.min(best, Math.hypot(e.x - x, e.y - y));
+      return best;
+    });
     const t = now / 1000;
     if (selectedId !== null && !state.entities.some((e) => e.id === selectedId)) selectedId = null;
     drawBoard(view, state, t, hover, alpha, selectedId);
@@ -291,6 +316,7 @@ function main(): void {
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
+  void loadSpriteSheet(import.meta.env.BASE_URL);
 }
 
 main();

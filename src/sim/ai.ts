@@ -24,6 +24,7 @@ import {
   depositGold,
   digTile,
   dropGold,
+  emit,
   heroFlees,
   offendEmissary,
   removeEntity,
@@ -102,6 +103,11 @@ export function walk(s: GameState, e: Entity, dt: number): boolean {
     e.y = next.y;
     e.path.shift();
     if (onRock) tunnelTile(s, next.x, next.y);
+    else if (isHero(e)) {
+      let open = 0;
+      for (const n of neighbors4(s.grid, next.x, next.y)) if (isWalkable(tileAt(s.grid, n.x, n.y))) open++;
+      emit(s, { kind: 'step', x: next.x, y: next.y, open });
+    }
   } else {
     e.x += (dx / d) * stepLen;
     e.y += (dy / d) * stepLen;
@@ -193,6 +199,7 @@ export function flee(s: GameState, e: Entity, threat: Vec, dt: number): void {
 /** Close on `foe` and swing when in reach. */
 export function engage(s: GameState, e: Entity, foe: Entity, dt: number, mover: Mover): void {
   if (e.task !== 'chase' || e.targetId !== foe.id) {
+    if (e.task !== 'chase' && (e.kind === 'cwn' || e.kind === 'gwyllgi')) emit(s, { kind: 'bay', x: e.x, y: e.y, id: e.id });
     e.task = 'chase';
     e.targetId = foe.id;
     e.repath = 0;

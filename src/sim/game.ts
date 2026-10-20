@@ -68,6 +68,17 @@ export type Pages = Record<BeastKind, PageState>;
 export const freshPages = (): Pages =>
   Object.fromEntries(BESTIARY_ORDER.map((k) => [k, 'unseen'])) as Pages;
 
+/** Things that happened this tick that a renderer or mixer may want to react to. */
+export type SimEvent =
+  | { kind: 'dig'; x: number; y: number; gold: boolean }
+  | { kind: 'heart' }
+  | { kind: 'hit'; x: number; y: number }
+  | { kind: 'death'; x: number; y: number; hero: boolean }
+  | { kind: 'bay'; x: number; y: number; id: number }
+  | { kind: 'arrive'; beast: BeastKind }
+  | { kind: 'wave'; n: number }
+  | { kind: 'step'; x: number; y: number; open: number };
+
 export interface MapChange {
   x: number;
   y: number;
@@ -123,6 +134,12 @@ export interface GameState {
   tegCooldown: number;
   /** Sim time of the last squabble log line, so the log is not spammed. */
   squabbleLogAt: number;
+  /** Where rock was recently dug or tunnelled, for the renderer's rubble. */
+  rubble: { x: number; y: number; t: number }[];
+  /** The recently fallen, for the renderer's dead frames. */
+  corpses: { kind: BeastKind; x: number; y: number; facing: -1 | 1; t: number }[];
+  /** Events since the consumer last drained them (see takeEvents). */
+  events: SimEvent[];
 }
 
 export const ARRIVAL_INTERVAL = 7;
@@ -166,6 +183,9 @@ export function createGame(seed = Date.now() & 0xffffffff, pages: Pages = freshP
     wardUntil: 0,
     tegCooldown: 0,
     squabbleLogAt: -Infinity,
+    rubble: [],
+    corpses: [],
+    events: [],
   };
   // Three Coblynau are already at work when the steward takes the keys.
   for (const at of [
@@ -213,6 +233,23 @@ export function heroCount(s: GameState): number {
 export function countKind(s: GameState, kind: BeastKind): number {
   return s.entities.filter((e) => e.kind === kind).length;
 }
+
+export const MAX_EVENTS = 64;
+
+export function emit(s: GameState, ev: SimEvent): void {
+  s.events.push(ev);
+  if (s.events.length > MAX_EVENTS) s.events.shift();
+}
+
+/** Hand over and clear the pending events. */
+export function takeEvents(s: GameState): SimEvent[] {
+  const out = s.events;
+  s.events = [];
+  return out;
+}
+
+export const RUBBLE_SECONDS = 4;
+export const CORPSE_SECONDS = 6;
 
 /** Record a tile change so cached paths near it can be re-planned. */
 function touchMap(s: GameState, x: number, y: number): void {
@@ -319,6 +356,8 @@ export function digTile(s: GameState, x: number, y: number): number {
   setTile(s.grid, x, y, Tile.Floor);
   setMarked(s.grid, x, y, false);
   touchMap(s, x, y);
+  leaveRubble(s, x, y);
+  emit(s, { kind: 'dig', x, y, gold: pay > 0 });
   dropGold(s, { x, y }, pay);
   return pay;
 }
@@ -329,7 +368,13 @@ export function tunnelTile(s: GameState, x: number, y: number): void {
     setTile(s.grid, x, y, Tile.Floor);
     setMarked(s.grid, x, y, false);
     touchMap(s, x, y);
+    leaveRubble(s, x, y);
   }
+}
+
+function leaveRubble(s: GameState, x: number, y: number): void {
+  s.rubble.push({ x, y, t: s.time });
+  if (s.rubble.length > 32) s.rubble.shift();
 }
 
 /** Largest contiguous region of a room. Arrival rules read this, not raw tile counts. */
@@ -343,6 +388,7 @@ export function damage(s: GameState, target: Entity, amount: number): void {
   if (target.kind === 'gwyllgi' && isCorridor(s.grid, Math.round(target.x), Math.round(target.y))) amount *= 0.5;
   target.hp -= amount;
   target.flash = 0.25;
+  emit(s, { kind: 'hit', x: target.x, y: target.y });
   if (isFair(target)) {
     offendEmissary(s, target, 'struck');
     return;
@@ -350,6 +396,9 @@ export function damage(s: GameState, target: Entity, amount: number): void {
   if (target.hp > 0) return;
   removeEntity(s, target);
   const at = { x: Math.round(target.x), y: Math.round(target.y) };
+  s.corpses.push({ kind: target.kind, x: at.x, y: at.y, facing: target.facing, t: s.time });
+  if (s.corpses.length > 24) s.corpses.shift();
+  emit(s, { kind: 'death', x: at.x, y: at.y, hero: isHero(target) });
   if (isHero(target)) {
     const kind = target.kind as HeroKind;
     studyPage(s, kind);
@@ -388,6 +437,7 @@ export function heroFlees(s: GameState, e: Entity): void {
 
 export function strikeHeart(s: GameState, e: Entity): void {
   s.heartHp = Math.max(0, s.heartHp - BESTIARY[e.kind].stats.attack);
+  emit(s, { kind: 'heart' });
   if (!e.struckHeart) {
     e.struckHeart = true;
     addLog(s, `Steel on the Heart. The ${BESTIARY[e.kind].name} has reached it, and the hall shudders.`);
@@ -474,6 +524,7 @@ function tickArrivals(s: GameState, dt: number): void {
   if (!kind) return;
   const e = spawn(s, kind, PORTAL_POS);
   if (kind === 'teg') e.stay = TEG_STAY;
+  emit(s, { kind: 'arrive', beast: kind });
   addLog(s, ARRIVAL_LOG[kind]);
 }
 
@@ -532,6 +583,7 @@ function tickWaves(s: GameState, dt: number): void {
     s.pendingGate = Math.min(spec.gate, Math.max(0, s.gates.length - 1));
     s.spawnTimer = 0;
     s.waveActive = true;
+    emit(s, { kind: 'wave', n: s.wave });
     const where = s.gates.length > 1 ? ` at the ${['west', 'east', 'third', 'fourth'][s.pendingGate] ?? ''} Gate`.replace('  ', ' ') : ' at the Gate';
     addLog(s, `Boots on the stair. Wave ${s.wave}: ${s.pendingHeroes.length} mortals${where}.`);
   }
@@ -666,6 +718,8 @@ export function step(s: GameState, dt: number, update: EntityUpdater): void {
   if (s.status !== 'playing') return;
   s.time += dt;
   s.tegCooldown = Math.max(0, s.tegCooldown - dt);
+  while (s.rubble.length > 0 && s.time - (s.rubble[0] as { t: number }).t > RUBBLE_SECONDS) s.rubble.shift();
+  while (s.corpses.length > 0 && s.time - (s.corpses[0] as { t: number }).t > CORPSE_SECONDS) s.corpses.shift();
   tickArrivals(s, dt);
   tickWages(s, dt);
   tickWaves(s, dt);

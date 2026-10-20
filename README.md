@@ -19,7 +19,8 @@ Needs [mise](https://mise.jdx.dev) (or node 22 + [go-task](https://taskfile.dev)
 ```sh
 mise install        # node + task, pinned in .mise.toml
 task dev            # serve with hot reload
-task check          # lint + test + build
+task check          # lint + test + bench + build (what CI runs)
+task sprites        # re-render art/figures.json into public/sprites.png
 task --list         # everything else
 ```
 
@@ -44,18 +45,31 @@ task --list         # everything else
 ## Layout
 
 ```
-src/sim/      pure game logic, no DOM, covered by Vitest
-src/render/   canvas drawing, pixel sprites (drawBeast), lighting pass
-src/ui/       HUD, toolbar, log, manual panel, overlay, audio
-src/data/     bestiary.ts: every creature's text and stats in one typed object
+src/sim/      pure game logic, no DOM, covered by Vitest (incl. a scripted steward for balance)
+src/render/   canvas drawing, sprite sheet + rectangle fallback (drawBeast), coloured light map
+src/ui/       HUD, toolbar, log, manual panel, overlay, audio and mixer
+src/data/     bestiary.ts (every creature, engine and trade in one typed object), waves.ts
+art/          figures.json: the sprite source; scripts/build-sprites.mjs renders the sheet
+docs/         backlog.md, balance.md
 src/main.ts   wiring and the game loop
 ```
 
-Tests run against `src/sim` only: Dijkstra, arrival rules, hunger, waves and win/lose, economy.
+Tests run against `src/sim` only, with a coverage gate of 80% and a
+pathfinding budget enforced by `task bench`. `docs/balance.md` records the
+tuning passes; `src/sim/balance.test.ts` fails the build if the scripted
+steward survives fewer than 60% of seeds.
+
+## Sound
+
+The Sound button starts three detuned drones and the roof drips; the Mixer
+below the toolbar has master, ambient and effects sliders. Hounds bay when
+they take up a chase, quieter the closer they are; picks ring on stone;
+the Heart tolls when struck; mortal footsteps are louder in open halls.
 
 ## Next
 
-- Real sprite sheet. `drawBeast` already sits behind a `BeastRenderer` interface; implement it over a sheet and call `setBeastRenderer`.
-- Printable manual PDF generated from `bestiary.ts`.
-- Box front/back mock.
-- Tauri wrapper around the built `dist/`.
+The backlog lives in `docs/backlog.md` and as GitHub issues with milestones.
+Remaining after M4: the printable manual and reference card, the box mock,
+the title screen, the campaign and level format, save/load, the sandbox
+editor, the Tauri wrapper, profiling, accessibility, the itch.io page and
+the devlog.

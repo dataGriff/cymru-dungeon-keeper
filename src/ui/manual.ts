@@ -101,6 +101,7 @@ export function createManual(h: ManualHandlers): Manual {
   const stateOf = (kind: BeastKind): 'unseen' | 'seen' | 'studied' => pages?.[kind] ?? 'studied';
 
   const openEngine = (kind: EngineKind): void => {
+    if (engine !== kind) turnPage();
     engine = kind;
     const entry = ENGINES[kind];
     header.textContent = `ENGINES OF THE HALL · p. ${MANUAL_ENGINES_FIRST_PAGE + ENGINE_ORDER.indexOf(kind)}`;
@@ -136,7 +137,15 @@ export function createManual(h: ManualHandlers): Manual {
     notes.replaceChildren(...entry.notes.map((n) => el('li', { text: n })));
   };
 
+  /** A page-turn flourish, skipped when motion is reduced. */
+  const turnPage = (): void => {
+    page.classList.remove('manual-turn');
+    void page.offsetWidth; // restart the animation
+    page.classList.add('manual-turn');
+  };
+
   const open = (kind: BeastKind): void => {
+    if (engine !== null || current !== kind) turnPage();
     engine = null;
     current = kind;
     const entry = BESTIARY[kind];

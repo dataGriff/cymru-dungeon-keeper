@@ -27,6 +27,13 @@ tasks:
     cmds:
       - npm run test
 
+  sprites:
+    desc: Render art/figures.json into public/sprites.png
+    cmds:
+      - node scripts/build-sprites.mjs
+    sources: [art/figures.json, scripts/build-sprites.mjs]
+    generates: [public/sprites.png, public/sprites.json]
+
   bench:
     desc: Performance budgets (pathfinding) without coverage instrumentation
     deps: [install]

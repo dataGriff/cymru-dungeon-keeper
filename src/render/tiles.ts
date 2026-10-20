@@ -1,4 +1,5 @@
-import { type Grid, Tile, isMarked, tileAt } from '../sim/grid';
+import { openEdges, sameRoom } from '../sim/autotile';
+import { type Grid, Tile, isMarked, isRoom, tileAt } from '../sim/grid';
 import { PALETTE as P } from './palette';
 
 export const TILE = 28;
@@ -41,9 +42,26 @@ export function drawTile(ctx: CanvasRenderingContext2D, g: Grid, x: number, y: n
       ctx.fillStyle = hash2(x, y, 7) < 0.5 ? P.rock : P.rockLight;
       ctx.fillRect(px, py, TILE, TILE);
       flecks(ctx, px, py, x, y, 3, P.rockDark, 11);
+      // Rock faces: a lit lip where the rock meets open floor, a shadow underneath.
+      const open = openEdges(g, x, y);
+      ctx.fillStyle = P.rockFace;
+      if (open.down) ctx.fillRect(px, py + TILE - 3, TILE, 3);
+      if (open.right) ctx.fillRect(px + TILE - 2, py, 2, TILE);
+      ctx.fillStyle = P.rockDark;
+      if (open.up) ctx.fillRect(px, py, TILE, 2);
+      if (open.left) ctx.fillRect(px, py, 2, TILE);
       if (tile === Tile.Gold) {
         flecks(ctx, px, py, x, y, 5, P.gold, 23);
         flecks(ctx, px, py, x, y, 3, P.goldDark, 41);
+        // Glint: one fleck catches the light now and then.
+        const phase = (t * 0.7 + hash2(x, y, 99) * 7) % 7;
+        if (phase < 0.25) {
+          ctx.fillStyle = P.bone;
+          const gx = Math.floor(hash2(x, y, 23) * (TILE - 4)) + 2;
+          const gy = Math.floor(hash2(x, y, 24) * (TILE - 4)) + 2;
+          ctx.fillRect(px + gx - 1, py + gy, 4, 2);
+          ctx.fillRect(px + gx, py + gy - 1, 2, 4);
+        }
       }
       if (isMarked(g, x, y)) {
         ctx.strokeStyle = P.mark;
@@ -150,4 +168,30 @@ export function drawTile(ctx: CanvasRenderingContext2D, g: Grid, x: number, y: n
       break;
     }
   }
+  if (isRoom(tile)) drawRoomEdges(ctx, g, x, y, px, py);
+}
+
+/** A thin bright rule where a room meets anything that is not itself, so regions read as rooms. */
+function drawRoomEdges(ctx: CanvasRenderingContext2D, g: Grid, x: number, y: number, px: number, py: number): void {
+  const open = openEdges(g, x, y, sameRoom);
+  ctx.fillStyle = P.roomEdge;
+  if (open.up) ctx.fillRect(px + 1, py + 1, TILE - 2, 1);
+  if (open.left) ctx.fillRect(px + 1, py + 1, 1, TILE - 2);
+  ctx.fillStyle = P.roomEdgeDark;
+  if (open.down) ctx.fillRect(px + 1, py + TILE - 2, TILE - 2, 1);
+  if (open.right) ctx.fillRect(px + TILE - 2, py + 1, 1, TILE - 2);
+}
+
+/** Rubble left where a tile was dug, fading over a few seconds. */
+export function drawRubble(ctx: CanvasRenderingContext2D, x: number, y: number, age: number, life: number): void {
+  const px = x * TILE;
+  const py = y * TILE;
+  ctx.globalAlpha = Math.max(0, 1 - age / life);
+  for (let i = 0; i < 6; i++) {
+    const rx = Math.floor(hash2(x, y, 300 + i) * (TILE - 6)) + 3;
+    const ry = Math.floor(hash2(x, y, 320 + i) * (TILE - 6)) + 3;
+    ctx.fillStyle = i % 2 === 0 ? P.rockLight : P.rockDark;
+    ctx.fillRect(px + rx, py + ry, 3, 2);
+  }
+  ctx.globalAlpha = 1;
 }
