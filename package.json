@@ -15,7 +15,8 @@
     "check": "npm run lint && npm run test && npm run bench && npm run build",
     "bench": "vitest run --config vitest.bench.config.ts",
     "sprites": "node scripts/build-sprites.mjs",
-    "box": "node scripts/build-box.mjs"
+    "box": "node scripts/build-box.mjs",
+    "manual": "node --experimental-strip-types scripts/build-manual.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

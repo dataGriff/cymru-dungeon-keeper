@@ -39,6 +39,13 @@ tasks:
     cmds:
       - node scripts/build-box.mjs
 
+  manual:
+    desc: Build dist/manual.pdf and dist/reference-card.pdf from the game data
+    cmds:
+      - npm run manual
+    sources: [src/data/*.ts, art/figures.json, scripts/build-manual.mjs]
+    generates: [dist/manual.pdf, dist/reference-card.pdf]
+
   bench:
     desc: Performance budgets (pathfinding) without coverage instrumentation
     deps: [install]

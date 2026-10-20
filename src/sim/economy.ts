@@ -1,10 +1,12 @@
+import { roomCost } from '../data/rooms';
 import { Tile, type RoomTile } from './grid';
 
+/** Room prices come from src/data/rooms.ts, which the printed manual reads too. */
 export const ROOM_COST: Record<RoomTile, number> = {
-  [Tile.Lair]: 15,
-  [Tile.Hatchery]: 25,
-  [Tile.Treasury]: 30,
-  [Tile.Pool]: 40,
+  [Tile.Lair]: roomCost('lair'),
+  [Tile.Hatchery]: roomCost('hatchery'),
+  [Tile.Treasury]: roomCost('treasury'),
+  [Tile.Pool]: roomCost('pool'),
 };
 
 export const GOLD_SEAM_PAYOUT = 25;
