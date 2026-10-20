@@ -1,7 +1,7 @@
 import { BESTIARY } from '../data/bestiary';
 import type { Entity } from '../sim/entities';
 import type { GameState } from '../sim/game';
-import { type Vec, inBounds, isRock, tileAt } from '../sim/grid';
+import { type Vec, inBounds, isRock, markedTiles, tileAt } from '../sim/grid';
 import { drawLighting } from './lighting';
 import { PALETTE as P } from './palette';
 import { drawBeast } from './sprites';
@@ -84,6 +84,22 @@ export function drawBoard(view: BoardView, s: GameState, t: number, hover: Vec |
   const sorted = [...s.entities].sort((a, b) => a.y - b.y);
   for (const e of sorted) drawEntity(ctx, e, t);
   drawLighting(ctx, view.light, g, s.entities, t);
+  // The steward's own marks stay legible in the dark: redraw them over the lighting.
+  ctx.strokeStyle = P.mark;
+  ctx.globalAlpha = 0.7;
+  ctx.lineWidth = 1;
+  for (const m of markedTiles(g)) {
+    const px = m.x * TILE;
+    const py = m.y * TILE;
+    ctx.strokeRect(px + 1.5, py + 1.5, TILE - 3, TILE - 3);
+    ctx.beginPath();
+    ctx.moveTo(px + 4, py + 4);
+    ctx.lineTo(px + TILE - 4, py + TILE - 4);
+    ctx.moveTo(px + TILE - 4, py + 4);
+    ctx.lineTo(px + 4, py + TILE - 4);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
   if (hover && inBounds(g, hover.x, hover.y)) {
     ctx.strokeStyle = isRock(tileAt(g, hover.x, hover.y)) ? P.mark : P.bone;
     ctx.globalAlpha = 0.6;
