@@ -9,15 +9,16 @@
  *
  * The front art is also copied to public/box-front.svg for the title screen.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, copyFileSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { figureRuns, loadFigures } from './lib/figures.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 const out = join(root, 'docs', 'box');
 mkdirSync(out, { recursive: true });
-const figures = JSON.parse(readFileSync(join(root, 'art', 'figures.json'), 'utf8'));
+const figures = loadFigures();
 
 // Big-box proportions: 7.5 x 9.5 in; spine 1.5 in. 300 dpi.
 const DPI = 300;
@@ -30,18 +31,86 @@ const display = "'Metamorphous', 'Palatino Linotype', Georgia, serif";
 const body = "'IM Fell English', 'Palatino Linotype', Georgia, serif";
 const mono = "'VT323', 'Courier New', monospace";
 
-/** Draw a figure from art/figures.json as SVG rects, scaled, with its feet at (cx, baseY). */
-function figure(kind, cx, baseY, px, flip = false) {
-  const rects = figures.figures[kind];
+/** Draw a figure from art/figures.json (outlined) as SVG rects, scaled, with its feet at (cx, baseY). */
+function figure(kind, cx, baseY, px, flip = false, opacity = 1) {
   const x0 = cx - (figures.width / 2) * px;
   const y0 = baseY - figures.height * px;
-  return rects
+  const rects = figureRuns(figures, kind)
     .map(([x, y, w, h, c]) => {
       const fx = flip ? figures.width - x - w : x;
-      return `<rect x="${x0 + fx * px}" y="${y0 + y * px}" width="${w * px}" height="${h * px}" fill="${figures.palette[c]}"/>`;
+      // A hair of overlap so the runs never show seams when rasterised.
+      return `<rect x="${(x0 + fx * px).toFixed(1)}" y="${(y0 + y * px).toFixed(1)}" width="${(w * px + 0.6).toFixed(1)}" height="${(h * px + 0.6).toFixed(1)}" fill="${c}"/>`;
     })
     .join('');
+  return opacity < 1 ? `<g opacity="${opacity}">${rects}</g>` : rects;
 }
+
+/** A pixel map (rows of palette keys) as SVG rects. */
+function pixels(rows, pal, x0, y0, px) {
+  const out = [];
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const ch = row[x];
+      if (ch === '.') continue;
+      out.push(`<rect x="${(x0 + x * px).toFixed(1)}" y="${(y0 + y * px).toFixed(1)}" width="${(px + 0.6).toFixed(1)}" height="${(px + 0.6).toFixed(1)}" fill="${pal[ch]}"/>`);
+    }
+  });
+  return out.join('');
+}
+
+/** Stable pseudo-random, so the box is the same box every build. */
+const rnd = (i, salt = 0) => {
+  let h = (i * 374761393 + salt * 668265263) | 0;
+  h = (h ^ (h >>> 13)) * 1274126177;
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+};
+
+/** The cave mouth: stepped pixel rock closing in from the top and sides. */
+function caveArch(u) {
+  const cols = Math.ceil(W / u);
+  const rows = Math.ceil(H / u);
+  const out = [];
+  for (let c = 0; c < cols; c++) {
+    const t = c / (cols - 1);
+    // Thick at the sides, thin over the middle, ragged everywhere.
+    const edge = Math.pow(Math.abs(t - 0.5) * 2, 2.6);
+    const depth = Math.round(rows * (0.06 + edge * 0.55) + rnd(c, 1) * 3 + (rnd(Math.floor(c / 3), 2) - 0.5) * 4);
+    for (let r = 0; r < depth; r++) {
+      const shade = r === depth - 1 ? '#3a2e48' : r === depth - 2 ? '#271f33' : rnd(c * 97 + r, 3) < 0.5 ? '#120d1a' : '#16111e';
+      out.push(`<rect x="${c * u}" y="${r * u}" width="${u + 0.6}" height="${u + 0.6}" fill="${shade}"/>`);
+    }
+    // And up from the floor at the far edges.
+    const rise = Math.round(rows * Math.max(0, edge - 0.55) * 0.9 + rnd(c, 4) * 2);
+    for (let r = 0; r < rise; r++) {
+      const y = rows - 1 - r;
+      out.push(`<rect x="${c * u}" y="${y * u}" width="${u + 0.6}" height="${u + 0.6}" fill="${r === rise - 1 ? '#2d243a' : '#120d1a'}"/>`);
+    }
+  }
+  return out.join('');
+}
+
+/** Flagstones, receding: rows of pixel bricks that shrink toward the back. */
+function flagstones(u, top) {
+  const out = [];
+  let y = top;
+  let row = 0;
+  while (y < H) {
+    const h = Math.round(u * (2 + row * 0.9));
+    const w = h * 2;
+    const off = (row % 2) * (w / 2);
+    for (let x = -off; x < W; x += w) {
+      const shade = ['#2a2133', '#2e2437', '#31273b', '#28202f'][Math.floor(rnd(row * 131 + Math.round(x), 5) * 4)];
+      out.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(w - u * 0.5).toFixed(1)}" height="${(h - u * 0.5).toFixed(1)}" fill="${shade}"/>`);
+      out.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(w - u * 0.5).toFixed(1)}" height="${(u * 0.5).toFixed(1)}" fill="#3a2f45"/>`);
+    }
+    y += h;
+    row++;
+  }
+  return out.join('');
+}
+
+const HEART_GEM = ['..rr.rr..', '.rRRrRRr.', 'rRWRRRRRr', 'rRRRRRRRr', '.rRRRRRr.', '..rRRRr..', '...rRr...', '....r....'];
+const DAIS = ['....oooooo....', '..ooSSSSSSoo..', '.oSSsssssSSSo.', 'oSSsssssssSSSo', 'oSssssssssssSo', '.oooooooooooo.'];
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const publisher = (x, y, size) => `
@@ -70,29 +139,57 @@ const defs = `
 
 // ---------- front ----------
 function front() {
-  const specks = Array.from({ length: 220 }, (_, i) => {
-    const x = ((i * 7919) % 1000) / 1000;
-    const y = ((i * 104729) % 1000) / 1000;
-    const s = 2 + ((i * 31) % 5);
-    return `<rect x="${x * W}" y="${y * H * 0.7}" width="${s}" height="${s}" fill="#e3b341" opacity="${0.25 + ((i * 13) % 50) / 100}"/>`;
+  const u = DPI * 0.06;
+  const floorTop = H * 0.66;
+  const specks = Array.from({ length: 160 }, (_, i) => {
+    const x = rnd(i, 7) * W;
+    const y = H * 0.3 + rnd(i, 8) * H * 0.4;
+    const s = u * (0.3 + rnd(i, 9) * 0.4);
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${s.toFixed(1)}" height="${s.toFixed(1)}" fill="${rnd(i, 10) < 0.6 ? '#ff8a2a' : '#ffd07a'}" opacity="${(0.3 + rnd(i, 11) * 0.6).toFixed(2)}"/>`;
   }).join('');
+  const heartX = W * 0.5;
+  const heartY = floorTop + u * 2;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${defs}
+  <radialGradient id="heartglow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#ff4a4a" stop-opacity="0.75"/>
+    <stop offset="35%" stop-color="#b4202c" stop-opacity="0.35"/>
+    <stop offset="100%" stop-color="#5a0f16" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="torch" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#ffb060" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#ff7a1f" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="mist" x1="0" x2="0" y1="0" y2="1">
+    <stop offset="0%" stop-color="#3a2f48" stop-opacity="0"/>
+    <stop offset="100%" stop-color="#3a2f48" stop-opacity="0.55"/>
+  </linearGradient>
   <rect width="${W}" height="${H}" fill="url(#glow)"/>
-  <rect width="${W}" height="${H}" filter="url(#grain)"/>
+  ${flagstones(u, floorTop)}
+  <rect x="0" y="${floorTop}" width="${W}" height="${H - floorTop}" fill="url(#mist)"/>
+  <!-- the Heart on its dais, and the light it throws -->
+  <ellipse cx="${heartX}" cy="${heartY}" rx="${DPI * 2.6}" ry="${DPI * 1.6}" fill="url(#heartglow)"/>
+  ${pixels(DAIS, { o: '#1a1420', S: '#4a3e54', s: '#3a3044' }, heartX - 7 * u * 1.6, heartY + u * 2, u * 1.6)}
+  ${pixels(HEART_GEM, { r: '#7a0f1a', R: '#ff3a44', W: '#ffd0d0' }, heartX - 4.5 * u * 1.6, heartY - u * 9, u * 1.6)}
+  <!-- the stair, and the mortals on it, torch-lit -->
+  <ellipse cx="${W * 0.8}" cy="${floorTop - u * 6}" rx="${DPI * 1.1}" ry="${DPI * 0.8}" fill="url(#torch)"/>
+  ${figure('knight', W * 0.8, floorTop + u * 1, u * 1.6, true)}
+  ${figure('priest', W * 0.89, floorTop - u * 1, u * 1.4, true)}
+  ${figure('knight', W * 0.95, floorTop - u * 3, u * 1.2, true, 0.8)}
+  <!-- the cave closes in -->
+  ${caveArch(u)}
+  <!-- two lamp-yellow eyes in the dark, upper left -->
+  ${pixels(['y.y'], { y: '#ffe34a' }, W * 0.12, H * 0.42, u * 0.9)}
   ${specks}
-  <rect x="0" y="${H * 0.62}" width="${W}" height="${H * 0.38}" fill="url(#floor)"/>
-  <!-- the Heart, pulsing somewhere behind -->
-  <rect x="${W * 0.5 - DPI * 0.55}" y="${H * 0.52}" width="${DPI * 1.1}" height="${DPI * 1.1}" fill="#ff4a4a" opacity="0.35" filter="url(#blur)"/>
-  <rect x="${W * 0.5 - DPI * 0.3}" y="${H * 0.56}" width="${DPI * 0.6}" height="${DPI * 0.6}" fill="#b4202c"/>
-  <!-- a knight in the dark, small, far -->
-  ${figure('knight', W * 0.82, H * 0.6, DPI * 0.16, true)}
-  <!-- the hound, huge, close -->
-  ${figure('cwn', W * 0.42, H * 0.86, DPI * 0.42)}
+  <!-- the pack: one hound close and huge, two behind -->
+  ${figure('cwn', W * 0.13, H * 0.745, u * 1.2, false, 0.75)}
+  ${figure('cwn', W * 0.66, H * 0.84, u * 1.9)}
+  ${figure('cwn', W * 0.24, H * 0.975, u * 3.2)}
+  <rect width="${W}" height="${H}" filter="url(#grain)"/>
   <!-- title -->
-  <text x="${W / 2}" y="${H * 0.13}" text-anchor="middle" font-family="${display}" font-size="${DPI * 0.82}" fill="#f1e9d8" style="paint-order:stroke" stroke="#07050c" stroke-width="${DPI * 0.03}">Steward</text>
-  <text x="${W / 2}" y="${H * 0.21}" text-anchor="middle" font-family="${display}" font-size="${DPI * 0.5}" fill="#ff7a1f" style="paint-order:stroke" stroke="#07050c" stroke-width="${DPI * 0.02}">of Annwn</text>
-  <text x="${W / 2}" y="${H * 0.265}" text-anchor="middle" font-family="${body}" font-style="italic" font-size="${DPI * 0.19}" fill="#b9b0a0">Arawn rides with the Hunt. Keep his hall until he returns.</text>
+  <text x="${W / 2}" y="${H * 0.13}" text-anchor="middle" font-family="${display}" font-size="${DPI * 0.82}" fill="#f1e9d8" style="paint-order:stroke" stroke="#07050c" stroke-width="${DPI * 0.04}">Steward</text>
+  <text x="${W / 2}" y="${H * 0.21}" text-anchor="middle" font-family="${display}" font-size="${DPI * 0.5}" fill="#ff7a1f" style="paint-order:stroke" stroke="#07050c" stroke-width="${DPI * 0.03}">of Annwn</text>
+  <text x="${W / 2}" y="${H * 0.265}" text-anchor="middle" font-family="${body}" font-style="italic" font-size="${DPI * 0.19}" fill="#d8cfbe" style="paint-order:stroke" stroke="#07050c" stroke-width="${DPI * 0.02}">Arawn rides with the Hunt. Keep his hall until he returns.</text>
   <!-- badge -->
   <g transform="translate(${W * 0.06} ${H * 0.9})">
     <rect width="${DPI * 1.5}" height="${DPI * 0.42}" fill="#f1e9d8"/>
@@ -237,5 +334,6 @@ if (process.argv.includes('--svg-only') || !existsSync(pwPath)) {
   await page.waitForTimeout(500);
   await page.pdf({ path: join(out, 'box.pdf'), width: '7.5in', height: '9.5in', printBackground: true, margin: { top: 0, bottom: 0, left: 0, right: 0 } });
   await browser.close();
+  for (const tmp of ['box.html', 'front-web.html']) rmSync(join(out, tmp), { force: true });
   console.log('wrote front.png, back.png, spine.png, box-3d.png, box.pdf (300 dpi) and public/box-front.png');
 }

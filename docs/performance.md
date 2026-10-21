@@ -33,18 +33,27 @@ of the path (or the walker) changes, so a dig on the far side of the map does
 not make everyone think again. Forty searches on 48×32 take about a
 millisecond here.
 
-**Tiles** are drawn every frame with no caching, roughly 1,500 `fillRect`s plus
-the autotile edges. It is well inside budget on this hardware; the obvious next
-step if it is not on yours is an offscreen tile layer redrawn only when the map
-version changes (the sim already tracks `mapVersion` for the path cache).
+**Tiles** are cached. The static art (stone, floor, rooms, landmarks) lives in
+an offscreen layer (`src/render/tilelayer.ts`) that is compared with the grid
+each frame and repaints only a changed tile and its eight neighbours, since wall
+faces, floor shadows and room edges depend on them. Only the animated tiles
+(water, coin stacks, the Heart, the Portal, gold glints, the Gate) are drawn
+per frame. That took the tile phase from about 0.5 ms to about 0.1 ms here.
+
+**Entities** are drawn after the light map, not under it, and dimmed by a
+wash sampled from the same lights (`lightAt`), so a white hound stays white by
+a torch instead of being multiplied orange. Each costs one `drawImage`, plus a
+masked wash on a scratch canvas when it stands in the dark or has just been hit.
+
+**Particles** (`src/render/particles.ts`) are render-side only, fed from sim
+events and the lights, capped at 420, and drawn as pixel squares.
 
 **Lighting** is an offscreen light map at half resolution: an ambient fill
 plus one radial gradient per light, composited with `multiply`. Half
 resolution quarters the fill cost and the smoothing hides it. There are about
 thirty lights on a busy map.
 
-**Entities** are a sprite-sheet `drawImage` each plus a shadow, bars and
-glyphs. Sorting by y for painter's order is a 60-element sort; nothing to see.
+Sorting entities by y for painter's order is a 60-element sort; nothing to see.
 
 ## Checking it
 

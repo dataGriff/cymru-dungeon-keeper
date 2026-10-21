@@ -6,11 +6,13 @@ Vite + TypeScript, plain Canvas 2D, no engine, no runtime dependencies. One stat
 
 ## Screenshots
 
-_Placeholder. Drop captures into `docs/` and reference them here._
-
-| The hall | The manual |
+| The hall in play | The whole page |
 | --- | --- |
-| `docs/hall.png` | `docs/manual.png` |
+| ![A wave arriving at the Cairn: hounds by the Heart, Coblynau digging, a knight in the corridor](docs/screenshots/hall.png) | ![The game with its HUD, toolbar and the manual panel](docs/screenshots/game.png) |
+
+| The art, unlit (editor view) | The title | The sprite sheet |
+| --- | --- | --- |
+| ![Cellular stone, gold veins, flagstones, wall faces and water](docs/screenshots/editor.png) | ![The title screen with the box art](docs/screenshots/title.png) | ![Twelve figures, nine frames each](docs/screenshots/sprites.png) |
 
 ## Running it
 

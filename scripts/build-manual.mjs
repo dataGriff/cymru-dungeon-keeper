@@ -10,9 +10,10 @@
  * (one A5 landscape page). All creature, engine, room and wave text comes
  * from src/data; only the intro and colophon are written here, once.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { figureRuns, loadFigures } from './lib/figures.mjs';
 import { deflateSync } from 'node:zlib';
 import { BESTIARY, BESTIARY_ORDER, ENGINES, ENGINE_ORDER, MANUAL_FOOTNOTE, TRADES } from '../src/data/bestiary.ts';
 import { ROOMS } from '../src/data/rooms.ts';
@@ -20,7 +21,7 @@ import { CAIRN, HERO_ROLES, SIEGE } from '../src/data/waves.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
-const figures = JSON.parse(readFileSync(join(root, 'art', 'figures.json'), 'utf8'));
+const figures = loadFigures();
 
 // ---------------------------------------------------------------- PDF writer
 
@@ -281,13 +282,11 @@ function body(y, text, opts = {}) {
   return doc.paragraph(M, y, text, { width: A5.w - 2 * M, ...opts });
 }
 
-/** A beast portrait from the rectangle figures, px points per logical pixel. */
+/** A beast portrait from the pixel figures (outlined), px points per logical pixel. */
 function portrait(kind, x, y, px) {
-  const fig = figures.figures[kind];
   const h = figures.height * px;
   doc.rect(x - 4, y - 4, figures.width * px + 8, h + 8, [0.93, 0.89, 0.8]);
-  for (const [rx, ry, rw, rh, c] of fig) {
-    const hex = figures.palette[c] ?? '#ff00ff';
+  for (const [rx, ry, rw, rh, hex] of figureRuns(figures, kind)) {
     const col = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
     doc.rect(x + rx * px, y + h - (ry + rh) * px, rw * px, rh * px, col);
   }
@@ -346,7 +345,7 @@ doc.line(M + 10, M + 10, A5.w - M - 10, M + 10, RULE, 1);
   doc.text(M + 14, y, 'OF ANNWN', 'F3', 44, INK);
   y -= 26;
   doc.text(M + 14, y, 'THE MANUAL', 'F4', 12, SOFT);
-  portrait('cwn', A5.w / 2 - 54, y - 170, 9);
+  portrait('cwn', A5.w / 2 - 64, y - 170, 8);
   y -= 200;
   doc.paragraph(M + 14, y, COVER_STRAP, { font: 'F2', size: 11, width: A5.w - 2 * M - 28, color: INK });
   doc.text(M + 14, M + 26, 'Hungovercoders · For one steward · Not to be lent', 'F4', 7, SOFT);
@@ -435,7 +434,7 @@ function beastPage(kind, sectionTitle) {
   const e = BESTIARY[kind];
   let y = page(sectionTitle);
   beastPages[kind] = doc.pageNumber;
-  portrait(kind, M, y - 100, 7);
+  portrait(kind, M, y - 100, 6);
   doc.text(M + 110, y - 22, e.name, 'F3', 20, INK);
   doc.paragraph(M + 110, y - 42, e.gloss, { font: 'F2', size: 11, width: A5.w - 2 * M - 110, color: SOFT });
   y -= 118;

@@ -10,3 +10,5 @@ docs/box/box.pdf
 src-tauri/target/
 src-tauri/gen/schemas/
 release/
+docs/box/box.html
+docs/box/front-web.html
