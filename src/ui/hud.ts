@@ -3,6 +3,7 @@ import { drawBeast } from '../render/sprites';
 import { isCreature } from '../sim/entities';
 import { type GameState, finalWave, heroCount, looseGold, nextWave, treasuryCapacity, vaultGold } from '../sim/game';
 import { el } from './dom';
+import { type IconName, iconCanvas } from './icons';
 
 export interface Hud {
   root: HTMLElement;
@@ -10,27 +11,31 @@ export interface Hud {
 }
 
 export function createHud(): Hud {
-  const gold = el('span', { className: 'hud-item' });
-  const heart = el('span', { className: 'hud-item' });
-  const wave = el('span', { className: 'hud-item' });
-  const creatures = el('span', { className: 'hud-item' });
+  /** A readout: a pixel icon and its text. */
+  const cell = (icon: IconName, cls = ''): { box: HTMLElement; text: HTMLElement } => {
+    const text = el('span', { className: 'hud-text' });
+    const box = el('span', { className: `hud-item hud-cell ${cls}` }, [iconCanvas(icon, 2), text]);
+    return { box, text };
+  };
+  const goldCell = cell('coin');
+  const gold = goldCell.text;
+  const heartCell = cell('heart', 'hud-heart');
+  const heart = heartCell.text;
+  const heartBar = el('span', { className: 'hud-bar' }, [el('span', { className: 'hud-bar-fill' })]);
+  heartCell.box.append(heartBar);
+  const waveCell = cell('wave');
+  const wave = waveCell.text;
+  const creaturesCell = cell('paw');
+  const creatures = creaturesCell.text;
   const clock = el('span', { className: 'hud-item hud-clock' });
   const status = el('span', { className: 'hud-item hud-status' });
   const tally = el('span', { className: 'hud-item hud-tally' });
   const preview = el('span', { className: 'hud-preview' });
   preview.setAttribute('aria-label', 'Next wave');
-  const root = el('div', { className: 'hud' }, [gold, heart, wave, creatures, tally, clock, status, preview]);
+  const root = el('div', { className: 'hud' }, [goldCell.box, heartCell.box, waveCell.box, creaturesCell.box, tally, clock, status, preview]);
   root.setAttribute('role', 'group');
   root.setAttribute('aria-label', 'Hall status');
-  for (const [node, label] of [
-    [gold, 'Gold'],
-    [heart, 'Heart'],
-    [wave, 'Wave'],
-    [creatures, 'Creatures'],
-    [status, 'Next wave or mortals'],
-  ] as const) {
-    node.setAttribute('aria-label', label);
-  }
+  status.setAttribute('aria-label', 'Next wave or mortals');
   // A quiet live region a screen reader hears every few seconds, not every frame.
   const live = el('div', { className: 'sr-only' });
   live.setAttribute('aria-live', 'polite');
@@ -46,12 +51,12 @@ export function createHud(): Hud {
     preview.replaceChildren();
     for (const kind of heroes) {
       const c = el('canvas', { className: 'hud-icon', title: BESTIARY[kind].name });
-      c.width = 24;
-      c.height = 28;
+      c.width = 32;
+      c.height = 32;
       const ctx = c.getContext('2d');
       if (ctx) {
         ctx.imageSmoothingEnabled = false;
-        drawBeast(ctx, kind, 12, 28, 2, { facing: -1 });
+        drawBeast(ctx, kind, 16, 32, 2, { facing: -1 });
       }
       preview.append(c);
     }
@@ -64,11 +69,14 @@ export function createHud(): Hud {
       const loose = looseGold(s);
       const cap = treasuryCapacity(s.grid);
       const banked = vaultGold(s);
-      gold.textContent = `Gold ${s.gold}` + (cap > 0 ? ` · Vault ${banked}/${cap}` : '') + (loose > 0 ? ` · Floor ${loose}` : '');
+      gold.textContent = `${s.gold}` + (cap > 0 ? ` · vault ${banked}/${cap}` : '') + (loose > 0 ? ` · ${loose} loose` : '');
+      gold.setAttribute('aria-label', `Gold ${s.gold}`);
       heart.textContent = `Heart ${Math.ceil(s.heartHp)}/100`;
-      heart.classList.toggle('hud-danger', s.heartHp < 35);
+      heartCell.box.classList.toggle('hud-danger', s.heartHp < 35);
+      (heartBar.firstElementChild as HTMLElement).style.width = `${Math.max(0, s.heartHp)}%`;
       wave.textContent = `Wave ${s.wave}/${finalWave(s)}`;
-      creatures.textContent = `Creatures ${s.entities.filter(isCreature).length}`;
+      creatures.textContent = `${s.entities.filter(isCreature).length}`;
+      creatures.setAttribute('aria-label', `Creatures ${s.entities.filter(isCreature).length}`);
       tally.textContent = s.slain + s.fled > 0 ? `Slain ${s.slain} · Fled ${s.fled}` : '';
       clock.textContent = (paused ? 'Paused ' : speed === 1 ? '' : `${speed}× `) + (s.level.id.startsWith('sandbox') ? `· seed ${s.seed}` : `· ${s.level.name}`);
       const mortals = heroCount(s) + s.pendingHeroes.length;
@@ -87,7 +95,7 @@ export function createHud(): Hud {
       }
       if (s.time - lastLive >= 8) {
         lastLive = s.time;
-        live.textContent = `${gold.textContent}. ${heart.textContent}. ${wave.textContent}. ${status.textContent}.`;
+        live.textContent = `Gold ${s.gold}. ${heart.textContent}. ${wave.textContent}. ${status.textContent}.`;
       }
     },
   };

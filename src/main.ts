@@ -1,5 +1,5 @@
 import { CAMPAIGN, type Level } from './data/levels';
-import { type BoardView, createBoardView, drawBoard, entityAt } from './render/board';
+import { type BoardView, boardReact, createBoardView, drawBoard, entityAt } from './render/board';
 import { loadSpriteSheet } from './render/sprites';
 import { TILE } from './render/tiles';
 import { nudge } from './sim/ai';
@@ -19,6 +19,7 @@ import { SPEEDS, TOOL_KEYS, TOOL_ROOM, type Tool, createToolbar, isTrapTool } fr
 import { showBriefing } from './ui/briefing';
 import { createEditor } from './ui/editor';
 import { campaignProgress, download, loadFromSlot, pickFile, saveToSlot, setCampaignProgress, slotInfo } from './ui/saves';
+import { iconCanvas } from './ui/icons';
 import { createProfiler } from './ui/profiler';
 import { type Settings, applySettings, loadSettings, saveSettings } from './ui/settings';
 import { createTitleScreen } from './ui/title';
@@ -165,7 +166,7 @@ function main(): void {
   });
 
   // Save, load, export, import.
-  const saveRow = el('div', { className: 'toolbar saves' });
+  const saveRow = el('div', { className: 'desk-panel saves' });
   const mkBtn = (label: string, title: string, fn: () => void): HTMLButtonElement => {
     const b = el('button', { className: 'tool', text: label, title });
     b.addEventListener('click', fn);
@@ -197,7 +198,6 @@ function main(): void {
       }
     });
   });
-  saveRow.append(saveNote);
 
   // The editor.
   const editorPanel = createEditor({
@@ -212,7 +212,7 @@ function main(): void {
   editorPanel.root.classList.add('hidden');
 
   const title = el('header', { className: 'masthead' }, [
-    el('h1', { text: 'Steward of Annwn' }),
+    el('h1', {}, [iconCanvas('heart', 3), el('span', { text: 'Steward of Annwn' })]),
     el('p', { className: 'strap', text: 'Arawn rides with the Hunt. Keep his hall until he returns.' }),
   ]);
   const boardWrap = el('div', { className: 'board-wrap' }, [canvas, tooltip.root, overlay.root]);
@@ -228,11 +228,9 @@ function main(): void {
     input.addEventListener('input', () => audio.setMixer({ [key]: Number(input.value) }));
     return el('label', { className: 'mixer-row' }, [el('span', { text: label }), input]);
   };
-  const mixer = el('details', { className: 'mixer' }, [
+  const mixer = el('details', { className: 'desk-menu mixer' }, [
     el('summary', { text: 'Mixer' }),
-    slider('Master', 'master'),
-    slider('Ambient', 'ambient'),
-    slider('Effects', 'sfx'),
+    el('div', { className: 'desk-panel desk-column' }, [slider('Master', 'master'), slider('Ambient', 'ambient'), slider('Effects', 'sfx')]),
   ]);
   // Settings: motion, flicker, text size, scale, safe colours.
   const check = (label: string, key: 'reducedMotion' | 'noFlicker' | 'safeColours'): HTMLElement => {
@@ -264,8 +262,9 @@ function main(): void {
     });
     return el('label', { className: 'mixer-row' }, [el('span', { text: label }), sel]);
   };
-  const settingsPanel = el('details', { className: 'mixer settings' }, [
+  const settingsPanel = el('details', { className: 'desk-menu mixer settings' }, [
     el('summary', { text: 'Settings' }),
+    el('div', { className: 'desk-panel desk-column' }, [
     check('Reduce motion', 'reducedMotion'),
     check('Steady torches (no flicker)', 'noFlicker'),
     check('Colour-blind safe bars', 'safeColours'),
@@ -282,8 +281,16 @@ function main(): void {
       [4, '4×'],
     ]),
     el('p', { className: 'settings-hint', text: 'F11 fullscreen · F3 frame timings · arrow keys move the cursor on the board, Enter uses the tool, Backspace is the right-click.' }),
+    ]),
   ]);
-  const left = el('section', { className: 'play' }, [title, hud.root, boardWrap, toolbar.root, editorPanel.root, saveRow, mixer, settingsPanel, log.root]);
+  const hall = el('details', { className: 'desk-menu' }, [el('summary', { text: 'Hall' }), saveRow]);
+  // Only one desk menu open at a time.
+  const menus = [hall, mixer, settingsPanel];
+  for (const m of menus) m.addEventListener('toggle', () => {
+    if (m.open) for (const o of menus) if (o !== m) o.open = false;
+  });
+  const desk = el('div', { className: 'desk' }, [...menus, saveNote]);
+  const left = el('section', { className: 'play' }, [title, hud.root, boardWrap, toolbar.root, editorPanel.root, log.root, desk]);
   boardWrap.append(profiler.root);
   app.append(el('div', { className: 'layout' }, [left, manual.root]));
 
@@ -539,7 +546,9 @@ function main(): void {
     }
     const alpha = paused || !started ? Math.min(1, clock.acc / TICK) : advance(state, clock, elapsed, speed);
     profiler.mark('sim', performance.now() - f0);
-    audio.react(takeEvents(state), (_id, x, y) => {
+    const events = takeEvents(state);
+    boardReact(view, state, events);
+    audio.react(events, (_id, x, y) => {
       let best = Infinity;
       for (const e of state.entities) if (isHero(e)) best = Math.min(best, Math.hypot(e.x - x, e.y - y));
       return best;
@@ -552,6 +561,7 @@ function main(): void {
     profiler.mark('lighting', view.timings.lighting);
     const u0 = performance.now();
     hud.update(state, paused, speed);
+    toolbar.setGold(state.gold);
     log.update(state);
     manual.setEmissary(emissary(state) !== undefined, state.gold);
     const pk = JSON.stringify(state.pages);
