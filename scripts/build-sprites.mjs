@@ -1,22 +1,23 @@
 #!/usr/bin/env node
 /**
- * Render art/figures.json into public/sprites.png: one row per beast, one
- * column per frame, each cell 12x14 logical pixels at SCALE. No dependencies:
+ * Bake art/figures.json into public/sprites.png: one row per beast, one
+ * column per frame, each cell 16x16 logical pixels at SCALE. No dependencies:
  * the PNG is written by hand (zlib from node). Frames are derived from the
- * base figure by small rules so the sheet stays editable as data; replace
- * the rules (or the PNG) with hand-drawn frames later without touching the
- * game, which only reads the layout from art/figures.json.
+ * base figure by small pixel rules (a stride, a bob, a lunge, a crouch, a
+ * fall) so the sheet stays editable as data; a hand-drawn sheet in the same
+ * layout can replace the PNG without touching the game.
  *
  *   node scripts/build-sprites.mjs      # or: task sprites
  */
 import { deflateSync } from 'node:zlib';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { figureGrid, loadFigures, outlined } from './lib/figures.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const src = JSON.parse(readFileSync(join(here, '..', 'art', 'figures.json'), 'utf8'));
-const SCALE = 2; // logical pixel -> sheet pixel
+const src = loadFigures();
+const SCALE = 2;
 const W = src.width;
 const H = src.height;
 const frames = src.frames;
@@ -28,59 +29,109 @@ const sheetH = cellH * kinds.length;
 const rgba = new Uint8Array(sheetW * sheetH * 4);
 
 const hex = (c) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
-const INK = [11, 10, 18];
+const INK = hex(src.outline);
+const empty = () => Array.from({ length: H }, () => Array(W).fill(null));
+const LEG_ROW = 12;
 
-function put(sx, sy, color, alpha = 255) {
-  if (sx < 0 || sy < 0 || sx >= sheetW || sy >= sheetH) return;
-  const i = (sy * sheetW + sx) * 4;
-  rgba[i] = color[0];
-  rgba[i + 1] = color[1];
-  rgba[i + 2] = color[2];
-  rgba[i + 3] = alpha;
+/** Copy pixels of `grid` into a fresh grid through `map(x, y) -> [x, y] | null`. */
+function remap(grid, map) {
+  const out = empty();
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const c = grid[y][x];
+      if (c === null) continue;
+      const to = map(x, y);
+      if (!to) continue;
+      const [nx, ny] = to;
+      if (nx >= 0 && ny >= 0 && nx < W && ny < H) out[ny][nx] = c;
+    }
+  }
+  return out;
 }
 
-/** Frame rules: return the rects to draw (possibly moved) and a y offset. */
-function frameRects(rects, frame) {
-  const legs = rects.filter((r) => r[1] >= 10); // anything in the bottom four rows walks
-  const body = rects.filter((r) => r[1] < 10);
+/** The figure's horizontal centre, from its feet. */
+function feetCentre(grid) {
+  const xs = [];
+  for (let y = LEG_ROW; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x] !== null) xs.push(x);
+  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : W / 2;
+}
+
+function frontEdge(grid) {
+  let max = 0;
+  for (let y = 0; y < LEG_ROW; y++) for (let x = 0; x < W; x++) if (grid[y][x] !== null) max = Math.max(max, x);
+  return max;
+}
+
+function derive(grid, frame) {
+  const cx = feetCentre(grid);
   switch (frame) {
-    case 'walk1':
-      return { dy: 0, rects: [...body, ...legs.map((r, i) => (i % 2 === 0 ? [r[0], r[1], r[2], Math.max(1, r[3] - 1), r[4]] : r))] };
+    case 'walk1': // back legs lift
+      return remap(grid, (x, y) => (y >= LEG_ROW && x < cx ? [x, y - 1] : [x, y]));
     case 'walk2':
-      return { dy: -1, rects };
-    case 'walk3':
-      return { dy: 0, rects: [...body, ...legs.map((r, i) => (i % 2 === 1 ? [r[0], r[1], r[2], Math.max(1, r[3] - 1), r[4]] : r))] };
-    case 'walk4':
-      return { dy: -1, rects };
+    case 'walk4': // the whole body bobs
+      return remap(grid, (x, y) => [x, y - 1]);
+    case 'walk3': // front legs lift
+      return remap(grid, (x, y) => (y >= LEG_ROW && x >= cx ? [x, y - 1] : [x, y]));
     case 'attack': {
-      // Lunge: everything shifts one pixel forward; the rightmost column (weapon or jaw) two.
-      const maxX = Math.max(...rects.map((r) => r[0] + r[2]));
-      return { dy: 0, rects: rects.map((r) => [r[0] + (r[0] + r[2] >= maxX - 1 ? 2 : 1), r[1], r[2], r[3], r[4]]) };
+      // Lunge: the body forward a pixel, the leading edge (weapon, jaw) two.
+      const front = frontEdge(grid);
+      return remap(grid, (x, y) => (y < LEG_ROW ? [x + (x >= front - 2 ? 2 : 1), y] : [x, y]));
     }
     case 'sleep':
-      // Lower and squashed: head drops two rows.
-      return { dy: 2, rects: rects.map((r) => (r[1] < 5 ? [r[0], r[1] + 2, r[2], r[3], r[4]] : r)) };
+      // Curled: everything down two, the head a third, the feet tucked.
+      return remap(grid, (x, y) => (y >= H - 2 ? null : [x, y + (y < 7 ? 3 : 2)]));
     case 'eat':
-      return { dy: 0, rects: rects.map((r) => (r[1] < 5 ? [r[0] + 1, r[1] + 1, r[2], r[3], r[4]] : r)) };
-    case 'dead':
-      // Flat on the floor: rotate the figure onto its back, compressed into the bottom rows.
-      return { dy: 0, rects: rects.map((r) => [Math.min(W - 1, Math.floor(r[1] * (W / H))), H - 1 - Math.floor(r[0] / 3) - 1, Math.max(1, Math.round(r[3] * (W / H))), 1, r[4]]) };
+      // Head down and forward.
+      return remap(grid, (x, y) => (y < 8 ? [x + 1, y + 1] : [x, y]));
+    case 'dead': {
+      // Upright figures fall a quarter turn; long four-legged ones roll onto their backs.
+      let minBX = W;
+      let maxBX = 0;
+      let minBY = H;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x] !== null) {
+        minBX = Math.min(minBX, x);
+        maxBX = Math.max(maxBX, x);
+        minBY = Math.min(minBY, y);
+      }
+      const long = maxBX - minBX + 1 > H - minBY;
+      const rot = long ? remap(grid, (x, y) => [x, H - 1 - y]) : remap(grid, (x, y) => [H - 1 - y, x]);
+      let lowest = 0;
+      let minX = W;
+      let maxX = 0;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (rot[y][x] !== null) {
+        lowest = Math.max(lowest, y);
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+      }
+      const dx = Math.round((W - 1 - maxX - minX) / 2);
+      const moved = remap(rot, (x, y) => [x + dx, y + (H - 1 - lowest)]);
+      // Faded towards ink.
+      return moved.map((row) => row.map((c) => (c === null ? null : `#${hex(c).map((v, i) => Math.round(v * 0.55 + INK[i] * 0.45).toString(16).padStart(2, '0')).join('')}`)));
+    }
     default:
-      return { dy: 0, rects };
+      return grid;
   }
 }
 
 kinds.forEach((kind, row) => {
+  const base = figureGrid(src, kind);
   frames.forEach((frame, col) => {
-    const { dy, rects } = frameRects(src.figures[kind], frame);
-    for (const [x, y, w, h, c] of rects) {
-      const color = hex(src.palette[c] ?? '#ff00ff');
-      for (let py = 0; py < h * SCALE; py++) {
-        for (let px = 0; px < w * SCALE; px++) {
-          const sx = col * cellW + x * SCALE + px;
-          const sy = row * cellH + (y + dy) * SCALE + py;
-          if (sy < row * cellH || sy >= (row + 1) * cellH) continue;
-          put(sx, sy, frame === 'dead' ? color.map((v, i) => Math.round(v * 0.6 + INK[i] * 0.4)) : color);
+    const grid = outlined(derive(base, frame), src.outline);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const c = grid[y][x];
+        if (c === null) continue;
+        const [r, g, b] = hex(c);
+        for (let py = 0; py < SCALE; py++) {
+          for (let px = 0; px < SCALE; px++) {
+            const sx = col * cellW + x * SCALE + px;
+            const sy = row * cellH + y * SCALE + py;
+            const i = (sy * sheetW + sx) * 4;
+            rgba[i] = r;
+            rgba[i + 1] = g;
+            rgba[i + 2] = b;
+            rgba[i + 3] = 255;
+          }
         }
       }
     }
@@ -110,8 +161,8 @@ const chunk = (type, data) => {
 const ihdr = Buffer.alloc(13);
 ihdr.writeUInt32BE(sheetW, 0);
 ihdr.writeUInt32BE(sheetH, 4);
-ihdr[8] = 8; // bit depth
-ihdr[9] = 6; // RGBA
+ihdr[8] = 8;
+ihdr[9] = 6;
 const raw = Buffer.alloc((sheetW * 4 + 1) * sheetH);
 for (let y = 0; y < sheetH; y++) {
   raw[y * (sheetW * 4 + 1)] = 0;
@@ -125,6 +176,5 @@ const png = Buffer.concat([
 ]);
 mkdirSync(join(here, '..', 'public'), { recursive: true });
 writeFileSync(join(here, '..', 'public', 'sprites.png'), png);
-const layout = { scale: SCALE, cellW, cellH, frames, kinds };
-writeFileSync(join(here, '..', 'public', 'sprites.json'), JSON.stringify(layout));
+writeFileSync(join(here, '..', 'public', 'sprites.json'), JSON.stringify({ scale: SCALE, cellW, cellH, frames, kinds }));
 console.log(`wrote public/sprites.png ${sheetW}x${sheetH} (${kinds.length} kinds x ${frames.length} frames) and public/sprites.json`);

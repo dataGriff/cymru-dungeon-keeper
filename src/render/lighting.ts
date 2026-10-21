@@ -11,9 +11,12 @@ import { TILE } from './tiles';
 
 /** Fraction of the light map scale: 0.5 means half resolution. */
 export const LIGHTMAP_SCALE = 0.5;
-export const AMBIENT = 'rgb(36, 27, 48)';
+/** The hall's own dark: low enough to hide, high enough that undug rock still reads as rock. */
+export const AMBIENT = 'rgb(70, 57, 88)';
+/** The ambient as a 0..1 brightness, for sampling the light at a point. */
+export const AMBIENT_LEVEL = 0.34;
 
-interface Light {
+export interface Light {
   x: number;
   y: number;
   r: number;
@@ -21,6 +24,8 @@ interface Light {
   phase: number;
   /** Flicker amplitude; 0 for steady lights. */
   flicker: number;
+  /** Warm lights shed embers; cold ones hold motes. */
+  temper: 'warm' | 'cold' | 'none';
 }
 
 export interface LightingOptions {
@@ -30,19 +35,19 @@ export interface LightingOptions {
   hunt?: boolean;
 }
 
-function collectLights(g: Grid, entities: readonly Entity[]): Light[] {
+export function collectLights(g: Grid, entities: readonly Entity[]): Light[] {
   const lights: Light[] = [];
-  const add = (x: number, y: number, r: number, color: string, phase: number, flicker = 0.06): void => {
-    lights.push({ x: (x + 0.5) * TILE, y: (y + 0.5) * TILE, r, color, phase, flicker });
+  const add = (x: number, y: number, r: number, color: string, phase: number, flicker = 0.06, temper: Light['temper'] = 'none'): void => {
+    lights.push({ x: (x + 0.5) * TILE, y: (y + 0.5) * TILE, r, color, phase, flicker, temper });
   };
-  for (const p of tilesOf(g, Tile.Heart)) add(p.x, p.y, 120, 'rgba(255, 70, 70, 0.95)', 0, 0.04);
+  for (const p of tilesOf(g, Tile.Heart)) add(p.x, p.y, 120, 'rgba(255, 70, 70, 0.95)', 0, 0.04, 'warm');
   for (const p of tilesOf(g, Tile.Portal)) add(p.x, p.y, 74, 'rgba(170, 110, 255, 0.9)', 1.3, 0.05);
-  for (const p of tilesOf(g, Tile.Gate)) add(p.x, p.y, 66, 'rgba(210, 220, 255, 0.85)', 2.1, 0.02);
+  for (const p of tilesOf(g, Tile.Gate)) add(p.x, p.y, 66, 'rgba(210, 220, 255, 0.85)', 2.1, 0.02, 'cold');
   tilesOf(g, Tile.Lair).forEach((p, i) => {
-    if (i % 3 === 0) add(p.x, p.y, 58, 'rgba(255, 150, 60, 0.9)', i);
+    if (i % 3 === 0) add(p.x, p.y, 58, 'rgba(255, 150, 60, 0.9)', i, 0.06, 'warm');
   });
   tilesOf(g, Tile.Hatchery).forEach((p, i) => {
-    if (i % 4 === 0) add(p.x, p.y, 54, 'rgba(255, 170, 80, 0.85)', i + 0.5);
+    if (i % 4 === 0) add(p.x, p.y, 54, 'rgba(255, 170, 80, 0.85)', i + 0.5, 0.06, 'warm');
   });
   tilesOf(g, Tile.Treasury).forEach((p, i) => {
     if (i % 4 === 0) add(p.x, p.y, 54, 'rgba(255, 200, 90, 0.85)', i + 0.7);
@@ -58,6 +63,22 @@ function collectLights(g: Grid, entities: readonly Entity[]): Light[] {
     else if (e.kind === 'teg') add(e.x, e.y, 42, 'rgba(200, 255, 200, 0.7)', e.id, 0.02);
   }
   return lights;
+}
+
+/**
+ * How lit a point is, 0 (the ambient dark) to 1 (fully lit), from the same
+ * lights the map is painted with. Used to dim creatures standing in the dark
+ * without staining their colours the way the multiplied map stains the floor.
+ */
+export function lightAt(lights: readonly Light[], x: number, y: number): number {
+  let sum = AMBIENT_LEVEL;
+  for (const l of lights) {
+    const r = l.r * 1.2;
+    const d = Math.hypot(l.x - x, l.y - y);
+    if (d >= r) continue;
+    sum += (1 - d / r) * 1.4;
+  }
+  return Math.min(1, sum);
 }
 
 export function createLightMap(w: number, h: number): CanvasRenderingContext2D {
@@ -76,7 +97,7 @@ export function drawLighting(
   ctx: CanvasRenderingContext2D,
   map: CanvasRenderingContext2D,
   g: Grid,
-  entities: readonly Entity[],
+  lights: readonly Light[],
   t: number,
   opts: LightingOptions = { reducedMotion: false },
 ): void {
@@ -87,7 +108,7 @@ export function drawLighting(
   map.fillStyle = opts.hunt ? 'rgb(70, 84, 110)' : AMBIENT;
   map.fillRect(0, 0, map.canvas.width, map.canvas.height);
   map.globalCompositeOperation = 'lighter';
-  for (const l of collectLights(g, entities)) {
+  for (const l of lights) {
     const flicker = opts.reducedMotion
       ? 1
       : 1 + l.flicker * Math.sin(t * 7.3 + l.phase) + l.flicker * 0.7 * Math.sin(t * 13.1 + l.phase * 1.7);
@@ -109,5 +130,11 @@ export function drawLighting(
   ctx.restore();
   ctx.imageSmoothingEnabled = false;
   ctx.fillStyle = 'rgba(255, 122, 31, 0.035)';
+  ctx.fillRect(0, 0, w, h);
+  // A soft vignette, so the eye stays on the hall and off the frame.
+  const v = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.72);
+  v.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  v.addColorStop(1, 'rgba(4, 2, 8, 0.45)');
+  ctx.fillStyle = v;
   ctx.fillRect(0, 0, w, h);
 }

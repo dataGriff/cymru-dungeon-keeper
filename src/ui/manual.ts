@@ -40,7 +40,7 @@ const APPETITE_LABEL: Record<string, string> = {
 };
 
 const PORTRAIT = 112;
-const PORTRAIT_PX = 8; // 12x14 logical pixels at 8px = 96x112
+const PORTRAIT_PX = 7; // 16x16 logical pixels at 7px = 112x112
 
 export function createManual(h: ManualHandlers): Manual {
   const header = el('div', { className: 'manual-header' });
@@ -253,7 +253,7 @@ export function createManual(h: ManualHandlers): Manual {
       if (!pctx) return;
       pctx.clearRect(0, 0, PORTRAIT, PORTRAIT);
       if (engine) {
-        drawEngine(pctx, engine, PORTRAIT / 2, PORTRAIT / 2, 8);
+        drawEngine(pctx, engine, PORTRAIT / 2, PORTRAIT / 2, 7);
         return;
       }
       drawBeast(pctx, current, PORTRAIT / 2, PORTRAIT - 2, PORTRAIT_PX, {

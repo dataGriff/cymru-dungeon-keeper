@@ -1,1 +1,1 @@
-{"scale":2,"cellW":24,"cellH":28,"frames":["idle","walk1","walk2","walk3","walk4","attack","sleep","eat","dead"],"kinds":["coblyn","cwn","pwca","afanc","gwyllgi","ceffyl","teg","knight","lord","levy","relic","priest"]}
+{"scale":2,"cellW":32,"cellH":32,"frames":["idle","walk1","walk2","walk3","walk4","attack","sleep","eat","dead"],"kinds":["coblyn","cwn","pwca","afanc","gwyllgi","ceffyl","teg","knight","lord","levy","relic","priest"]}
