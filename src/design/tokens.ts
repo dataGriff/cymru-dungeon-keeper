@@ -89,7 +89,7 @@ export const board = {
   huntWash: '#cfe0ff',
   shadow: '#000000',
   missing: '#ff00ff',
-  hp: { back: '#1a1016', good: '#8fd14f', hero: '#e8b04a', bad: '#e04545', shine: '#ffffff' },
+  hp: { back: '#1a1016', good: '#4fd1a0', hero: '#e8b04a', bad: '#e04545', shine: '#ffffff' },
   /** Colour-blind safe health bars: hue says whose, length and a stripe say how hurt. */
   hpSafe: { hall: '#5aa9ff', hero: '#f0a030', stripe: '#f1e9d8' },
   mood: { angry: '#e04545', hungry: '#e3b341', other: '#f1e9d8' },
@@ -195,6 +195,67 @@ export const board = {
     mist: '#c8d7f0',
   },
 } as const;
+
+// ---------------------------------------------------------------- pairs that must stay legible
+
+/**
+ * Text and the ground it sits on, as the stylesheets pair them. Every theme
+ * is checked (src/design/a11y.test.ts): `min` is the WCAG ratio, 7 for body
+ * text and 4.5 for secondary text; `opacity` is the text's own opacity where
+ * the stylesheet fades it. Add a pair when a stylesheet puts text on a new
+ * ground.
+ */
+export interface TextPair {
+  fg: UiColor;
+  bg: UiColor;
+  min: 7 | 4.5;
+  opacity?: number;
+  use: string;
+}
+
+export const textPairs: readonly TextPair[] = [
+  { fg: 'text', bg: 'bg', min: 7, use: 'body text, the masthead' },
+  { fg: 'text', bg: 'surface', min: 7, use: 'HUD, the latest log line, overlay titles, levels' },
+  { fg: 'textDim', bg: 'surface', min: 4.5, use: 'log, overlay body, menus, settings' },
+  { fg: 'textDim', bg: 'surfaceHigh', min: 4.5, use: 'button labels on the raised gradient' },
+  { fg: 'textDim', bg: 'surface', min: 4.5, opacity: 0.7, use: 'the oldest log line' },
+  { fg: 'textDim', bg: 'bg', min: 4.5, use: 'the strap line, the title rows' },
+  { fg: 'textFaint', bg: 'bg', min: 4.5, use: 'tool group names' },
+  { fg: 'textFaint', bg: 'surfaceHigh', min: 4.5, use: 'key hints, a cost you cannot pay' },
+  { fg: 'accent', bg: 'surface', min: 4.5, use: 'the clock, briefing kicker, primary buttons' },
+  { fg: 'accent', bg: 'surfaceActive', min: 4.5, use: 'the tool in hand' },
+  { fg: 'accent', bg: 'bg', min: 4.5, use: 'press any key' },
+  { fg: 'danger', bg: 'surface', min: 4.5, use: 'the HUD when the Heart is struck' },
+  { fg: 'gold', bg: 'surfaceHigh', min: 4.5, use: 'tool costs' },
+  { fg: 'ink', bg: 'parchment', min: 7, use: 'the manual' },
+  { fg: 'ink', bg: 'parchmentDark', min: 7, use: "the manual, at the page's dark corner" },
+  { fg: 'inkSoft', bg: 'parchment', min: 4.5, use: 'glosses, headers, tabs, footnotes' },
+  { fg: 'inkSoft', bg: 'parchmentDark', min: 4.5, use: 'the same, at the dark corner' },
+  { fg: 'inkSoft', bg: 'parchment', min: 4.5, opacity: 0.9, use: 'a tab for a page not yet seen' },
+  { fg: 'parchment', bg: 'ink', min: 7, use: 'the open tab, the trade buttons' },
+  { fg: 'dosText', bg: 'dosBlue', min: 7, use: 'the installer' },
+];
+
+/** A board colour, by path: 'hp.good'. */
+export type BoardPath = string;
+
+/**
+ * Board colours that carry meaning and must stay apart. `distinct` pairs
+ * must differ by ΔE ≥ 20 for normal vision and under simulated protanopia,
+ * deuteranopia and tritanopia; `ground` pairs need 3:1 contrast (a bar
+ * against its back).
+ */
+export const boardPairs: readonly { a: BoardPath; b: BoardPath; kind: 'distinct' | 'ground'; use: string }[] = [
+  { a: 'hp.good', b: 'hp.bad', kind: 'distinct', use: 'a healthy creature and a dying one' },
+  { a: 'hp.hero', b: 'hp.bad', kind: 'distinct', use: 'a healthy mortal and a dying one' },
+  { a: 'hp.good', b: 'hp.hero', kind: 'distinct', use: 'whose bar it is: the hall or the mortals' },
+  { a: 'hpSafe.hall', b: 'hpSafe.hero', kind: 'distinct', use: 'whose bar it is, in safe colours' },
+  { a: 'hp.good', b: 'hp.back', kind: 'ground', use: 'a bar against its back' },
+  { a: 'hp.hero', b: 'hp.back', kind: 'ground', use: 'a bar against its back' },
+  { a: 'hp.bad', b: 'hp.back', kind: 'ground', use: 'a bar against its back' },
+  { a: 'hpSafe.hall', b: 'hp.back', kind: 'ground', use: 'a bar against its back' },
+  { a: 'hpSafe.hero', b: 'hp.back', kind: 'ground', use: 'a bar against its back' },
+];
 
 // ---------------------------------------------------------------- type, space, size
 

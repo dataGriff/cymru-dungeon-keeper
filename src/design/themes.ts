@@ -23,3 +23,30 @@ export const THEMES: Record<string, Theme> = {
 };
 
 export type ThemeName = keyof typeof THEMES;
+
+/** The interface colours with a theme applied. */
+export function themeUi(name: string): Record<keyof typeof ui, string> {
+  return { ...ui, ...THEMES[name]?.ui };
+}
+
+/** `board` with one level of overrides merged in (a group's keys replace the base's, the rest stay). */
+export function mergeBoard(overrides: Theme['board'] = {}): typeof board {
+  const next = structuredClone(board) as Record<string, unknown>;
+  for (const [k, v] of Object.entries(overrides)) {
+    const base = next[k];
+    next[k] = typeof v === 'object' && !Array.isArray(v) && typeof base === 'object' && !Array.isArray(base) ? { ...base, ...v } : v;
+  }
+  return next as typeof board;
+}
+
+/** The board colours with a theme applied. */
+export function themeBoard(name: string): typeof board {
+  return mergeBoard(THEMES[name]?.board);
+}
+
+/** A board colour by path ('hp.good'). */
+export function boardColor(colors: typeof board, path: string): string {
+  const v = path.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], colors);
+  if (typeof v !== 'string') throw new Error(`no board colour ${path}`);
+  return v;
+}
