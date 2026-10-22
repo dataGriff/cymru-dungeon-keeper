@@ -75,7 +75,7 @@ src/data/     bestiary.ts (every creature, engine and trade), waves.ts, levels.t
 art/          figures.json (creatures), pixels.json (every other pixel map), fonts/ (OFL);
               scripts/ renders the sheet, the manual, the box, the release
 src-tauri/    the desktop wrapper
-docs/         backlog, balance, performance, desktop, itch page, box art, devlog drafts
+docs/         design (the design system), backlog, balance, performance, desktop, itch page, box art, devlog
 src/main.ts   wiring and the game loop
 src/styleguide.ts  the living style guide (styleguide.html)
 ```
