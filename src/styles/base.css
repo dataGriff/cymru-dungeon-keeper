@@ -38,7 +38,8 @@
     accent-color: var(--accent);
   }
 
-  :is(button, input, select, summary, textarea):focus-visible {
+  :is(button, input, select, summary, textarea):focus-visible,
+  .is-focus {
     outline: 2px solid var(--accent);
     outline-offset: 1px;
   }

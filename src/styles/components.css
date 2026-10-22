@@ -4,7 +4,8 @@
   /* ================================================================ button
      One component. Variants change size and colour; the states are shared:
      hover, pressed (:active), on (.active / aria-pressed / aria-selected),
-     disabled and focus-visible (in base.css). */
+     disabled and focus-visible (in base.css). .is-hover, .is-pressed and
+     .is-focus force a state, for the style guide. */
   .btn {
     position: relative;
     display: inline-flex;
@@ -25,11 +26,11 @@
       border-color var(--dur-fast),
       background-color var(--dur-fast);
   }
-  .btn:hover:not(:disabled) {
+  .btn:is(:hover, .is-hover):not(:disabled) {
     color: var(--text);
     border-color: var(--accent-dim);
   }
-  .btn:active:not(:disabled) {
+  .btn:is(:active, .is-pressed):not(:disabled) {
     transform: translateY(1px);
     border-bottom-width: 2px;
   }
@@ -66,7 +67,7 @@
     border-color: var(--accent);
     border-bottom-width: 1px;
   }
-  .btn--primary:hover:not(:disabled) {
+  .btn--primary:is(:hover, .is-hover):not(:disabled) {
     color: var(--accent);
     border-color: var(--accent);
     background: var(--surface-active-low);
@@ -79,7 +80,7 @@
     border-color: var(--line-strong);
     border-bottom-width: 1px;
   }
-  .btn--ghost:hover:not(:disabled) {
+  .btn--ghost:is(:hover, .is-hover):not(:disabled) {
     background: var(--surface-active-low);
   }
   /* A row in a list of levels. */
@@ -92,7 +93,7 @@
     border-color: var(--line-strong);
     border-bottom-width: 1px;
   }
-  .btn--level:hover:not(:disabled) {
+  .btn--level:is(:hover, .is-hover):not(:disabled) {
     color: var(--accent);
     border-color: var(--accent);
   }
@@ -112,7 +113,7 @@
     background: rgb(var(--sheen-rgb) / 0.18);
     border: 1px solid rgb(var(--ink-rule-rgb) / 0.35);
   }
-  .btn--tab:hover:not(:disabled) {
+  .btn--tab:is(:hover, .is-hover):not(:disabled) {
     color: var(--ink);
     border-color: rgb(var(--ink-rule-rgb) / 0.35);
   }
@@ -133,7 +134,7 @@
     background: var(--ink);
     border: 1px solid var(--ink);
   }
-  .btn--ink:hover:not(:disabled) {
+  .btn--ink:is(:hover, .is-hover):not(:disabled) {
     color: var(--parchment-light);
     border-color: var(--ink-rule);
   }

@@ -6,26 +6,29 @@
 import { type PixelName, drawPixels, mapSize } from '../render/pixels';
 import { crispSize } from '../render/scale';
 
-export type IconName =
-  | 'hand'
-  | 'dig'
-  | 'lair'
-  | 'hatchery'
-  | 'treasury'
-  | 'pool'
-  | 'pause'
-  | 'play'
-  | 'restart'
-  | 'horn'
-  | 'coin'
-  | 'heart'
-  | 'wave'
-  | 'paw'
-  | 'vault'
-  | 'floor'
-  | 'pit'
-  | 'boulder'
-  | 'snare';
+export const ICON_NAMES = [
+  'hand',
+  'dig',
+  'lair',
+  'hatchery',
+  'treasury',
+  'pool',
+  'pause',
+  'play',
+  'restart',
+  'horn',
+  'coin',
+  'heart',
+  'wave',
+  'paw',
+  'vault',
+  'floor',
+  'pit',
+  'boulder',
+  'snare',
+] as const;
+
+export type IconName = (typeof ICON_NAMES)[number];
 
 /** Which map draws each icon. */
 export function iconMap(name: IconName): PixelName {

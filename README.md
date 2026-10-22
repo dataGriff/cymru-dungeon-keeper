@@ -30,7 +30,13 @@ task release        # zip the web build and push to itch.io with butler
 task --list         # everything else
 ```
 
-Open `?start=cairn` (or any level id) to skip the title screen.
+Open `?start=cairn` (or any level id) to skip the title screen, and
+`?theme=contrast` or `?theme=hunt` to force a theme.
+
+The **style guide** is at [`/styleguide.html`](styleguide.html) (served by
+`task dev`, built by `task build`): every token, type size, button state,
+the HUD, log and manual, every icon, figure, tile and engine, and a lit
+scene, drawn with the game's own code. `docs/design.md` explains the system.
 
 ## Controls
 
@@ -63,14 +69,19 @@ Open `?start=cairn` (or any level id) to skip the title screen.
 src/sim/      pure game logic, no DOM, covered by Vitest (incl. a scripted steward, save/load, sandbox)
 src/render/   canvas drawing, sprite sheet + rectangle fallback (drawBeast), autotiles, coloured light map
 src/ui/       title, briefing, HUD, toolbar, log, manual panel, overlay, editor, settings, audio and mixer
+src/design/   tokens (every colour, size and font), themes, contrast and colour-vision checks
+src/styles/   the stylesheet in @layers; tokens.css is generated from src/design
 src/data/     bestiary.ts (every creature, engine and trade), waves.ts, levels.ts (the campaign), rooms.ts
-art/          figures.json: the sprite source; scripts/ renders the sheet, the manual, the box, the release
+art/          figures.json (creatures), pixels.json (every other pixel map), fonts/ (OFL);
+              scripts/ renders the sheet, the manual, the box, the release
 src-tauri/    the desktop wrapper
 docs/         backlog, balance, performance, desktop, itch page, box art, devlog drafts
 src/main.ts   wiring and the game loop
+src/styleguide.ts  the living style guide (styleguide.html)
 ```
 
-Tests run against `src/sim` only, with a coverage gate of 80% and a
+Tests run against `src/sim` (with a coverage gate of 80%), the design
+system in `src/design` (tokens, contrast, fonts, art data) and board scaling, and a
 pathfinding budget enforced by `task bench`. `docs/balance.md` records the
 tuning passes; `src/sim/balance.test.ts` fails the build if the scripted
 steward survives fewer than 60% of seeds.
