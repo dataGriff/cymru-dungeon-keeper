@@ -7,6 +7,8 @@
  */
 import type { SimEvent } from '../sim/game';
 import type { Light } from './lighting';
+import { alpha } from '../design/color';
+import { B } from './colors';
 import { PX, TILE } from './tiles';
 
 interface Particle {
@@ -43,7 +45,7 @@ export class Particles {
     this.list.push({ vx: 0, vy: 0, life: 1, max: 1, size: 1, glow: false, gravity: 0, drag: 0.9, sway: 0, ...p });
   }
 
-  private burst(x: number, y: number, n: number, opts: { speed: number; up?: number; colors: string[]; life: number; size?: number; glow?: boolean; gravity?: number; drag?: number }): void {
+  private burst(x: number, y: number, n: number, opts: { speed: number; up?: number; colors: readonly string[]; life: number; size?: number; glow?: boolean; gravity?: number; drag?: number }): void {
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
       const sp = opts.speed * (0.4 + Math.random() * 0.8);
@@ -70,25 +72,25 @@ export class Particles {
     for (const ev of events) {
       switch (ev.kind) {
         case 'dig':
-          this.burst(c(ev.x), c(ev.y), 10, { speed: 70, up: 40, colors: ['#3c304a', '#2d2439', '#4b3d5c'], life: 0.7, gravity: 260, drag: 0.94 });
-          this.burst(c(ev.x), c(ev.y), 8, { speed: 18, up: 10, colors: ['rgba(120,105,130,0.5)', 'rgba(90,80,100,0.5)'], life: 1.2, size: 2, drag: 0.92 });
-          if (ev.gold) this.burst(c(ev.x), c(ev.y), 12, { speed: 45, up: 30, colors: ['#ffe08a', '#e3b341', '#fff6d0'], life: 0.9, glow: true, gravity: 60 });
+          this.burst(c(ev.x), c(ev.y), 10, { speed: 70, up: 40, colors: B.fx.chips, life: 0.7, gravity: 260, drag: 0.94 });
+          this.burst(c(ev.x), c(ev.y), 8, { speed: 18, up: 10, colors: B.fx.dust.map((c) => alpha(c, 0.5)), life: 1.2, size: 2, drag: 0.92 });
+          if (ev.gold) this.burst(c(ev.x), c(ev.y), 12, { speed: 45, up: 30, colors: B.fx.gold, life: 0.9, glow: true, gravity: 60 });
           break;
         case 'hit':
-          this.burst(c(ev.x), c(ev.y) - 6, 6, { speed: 90, colors: ['#ff5a4a', '#ffb070', '#d8232a'], life: 0.3, glow: true, drag: 0.85 });
+          this.burst(c(ev.x), c(ev.y) - 6, 6, { speed: 90, colors: B.fx.sparks, life: 0.3, glow: true, drag: 0.85 });
           break;
         case 'death':
-          this.burst(c(ev.x), c(ev.y), 12, { speed: 20, up: 12, colors: ['rgba(60,50,70,0.7)', 'rgba(40,32,48,0.7)'], life: 1.4, size: 2, drag: 0.93 });
+          this.burst(c(ev.x), c(ev.y), 12, { speed: 20, up: 12, colors: B.fx.smoke.map((c) => alpha(c, 0.7)), life: 1.4, size: 2, drag: 0.93 });
           for (let i = 0; i < 6; i++) {
             const life = 1.6 + Math.random();
-            this.add({ x: c(ev.x) + (Math.random() - 0.5) * 8, y: c(ev.y) - 8, vx: (Math.random() - 0.5) * 6, vy: -20 - Math.random() * 14, life, max: life, color: ev.hero ? '#d8e4ff' : '#ffd0a0', glow: true, drag: 0.98, sway: 6 });
+            this.add({ x: c(ev.x) + (Math.random() - 0.5) * 8, y: c(ev.y) - 8, vx: (Math.random() - 0.5) * 6, vy: -20 - Math.random() * 14, life, max: life, color: ev.hero ? B.fx.wispHero : B.fx.wispBeast, glow: true, drag: 0.98, sway: 6 });
           }
           break;
         case 'heart':
-          if (at.heart) this.burst(c(at.heart.x), c(at.heart.y), 10, { speed: 80, up: 20, colors: ['#ff3a44', '#ffd0d0', '#b4202c'], life: 0.6, glow: true, gravity: 140 });
+          if (at.heart) this.burst(c(at.heart.x), c(at.heart.y), 10, { speed: 80, up: 20, colors: B.fx.shards, life: 0.6, glow: true, gravity: 140 });
           break;
         case 'arrive':
-          if (at.portal) this.burst(c(at.portal.x), c(at.portal.y), 16, { speed: 40, colors: ['#e8d0ff', '#a070ff', '#5a30a0'], life: 0.9, glow: true, drag: 0.9 });
+          if (at.portal) this.burst(c(at.portal.x), c(at.portal.y), 16, { speed: 40, colors: B.fx.motes, life: 0.9, glow: true, drag: 0.9 });
           break;
         default:
           break;
@@ -105,10 +107,10 @@ export class Particles {
       for (const l of lights) {
         if (l.temper === 'warm' && Math.random() < 0.05) {
           const life = 1.5 + Math.random() * 1.5;
-          this.add({ x: l.x + (Math.random() - 0.5) * 18, y: l.y + (Math.random() - 0.5) * 10, vx: 0, vy: -10 - Math.random() * 12, life, max: life, color: Math.random() < 0.3 ? '#ffd07a' : '#ff8a2a', glow: true, drag: 0.99, sway: 5 });
+          this.add({ x: l.x + (Math.random() - 0.5) * 18, y: l.y + (Math.random() - 0.5) * 10, vx: 0, vy: -10 - Math.random() * 12, life, max: life, color: Math.random() < 0.3 ? B.fx.embers[1] : B.fx.embers[0], glow: true, drag: 0.99, sway: 5 });
         } else if (l.temper === 'cold' && Math.random() < 0.06) {
           const life = 2.5 + Math.random() * 2;
-          this.add({ x: l.x - 6 - Math.random() * 30, y: l.y + (Math.random() - 0.5) * 20, vx: -4 - Math.random() * 4, vy: (Math.random() - 0.5) * 3, life, max: life, color: 'rgba(200, 215, 240, 0.6)', glow: true, drag: 0.995, sway: 2 });
+          this.add({ x: l.x - 6 - Math.random() * 30, y: l.y + (Math.random() - 0.5) * 20, vx: -4 - Math.random() * 4, vy: (Math.random() - 0.5) * 3, life, max: life, color: alpha(B.fx.mist, 0.6), glow: true, drag: 0.995, sway: 2 });
         }
       }
     }

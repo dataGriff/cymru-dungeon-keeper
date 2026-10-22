@@ -1,0 +1,171 @@
+/* Whole screens: the title, the install homage, the briefing, the editor. */
+
+@layer screens {
+  /* ---------- title ---------- */
+  .title {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-title);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--sp-7);
+    background: var(--bg);
+    transition: opacity var(--dur-slow) ease;
+  }
+  .title-leaving {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .title-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-5);
+    width: 100%;
+    max-width: min(92vw, 420px);
+    max-height: 100vh;
+    overflow-y: auto;
+    padding: var(--sp-4) 0;
+  }
+  .title-art {
+    width: 100%;
+    max-height: 68vh;
+    object-fit: contain;
+    box-shadow:
+      0 20px 60px rgb(var(--well-rgb) / 0.8),
+      0 0 40px rgb(var(--accent-rgb) / 0.1);
+  }
+  .title-press {
+    margin: var(--sp-2) 0 0;
+    font-family: var(--font-hud);
+    font-size: var(--fs-title);
+    color: var(--accent);
+    animation: title-blink 1.1s steps(2, start) infinite;
+  }
+  @keyframes title-blink {
+    to {
+      visibility: hidden;
+    }
+  }
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-7);
+    font-family: var(--font-hud);
+    font-size: var(--fs-hud);
+    color: var(--text-dim);
+  }
+  .title-menu {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-5) 18px;
+    width: 100%;
+    font-family: var(--font-hud);
+    font-size: var(--fs-hud);
+    color: var(--text-dim);
+  }
+  @media (max-width: 480px) {
+    .title-menu {
+      grid-template-columns: 1fr;
+    }
+  }
+  .title-menu-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    letter-spacing: 0.06em;
+  }
+  .title-seed input {
+    width: 90px;
+    font-size: 17px;
+  }
+  .title-credits {
+    max-width: 420px;
+    padding: 14px 18px;
+    font-size: var(--fs-small);
+    color: var(--text-dim);
+    background: var(--surface);
+    border: 1px solid var(--accent-dim);
+  }
+  .title-credits h2 {
+    margin: 0 0 var(--sp-3);
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--fs-title-small);
+    color: var(--text);
+  }
+  .title-credits p {
+    margin: 0 0 var(--sp-4);
+  }
+  .title-credits-foot {
+    font-family: var(--font-hud);
+    color: var(--accent);
+  }
+  /* The installer: a blue screen from 1997. */
+  .title-install {
+    width: 100%;
+    min-height: 300px;
+    margin: 0;
+    padding: 14px;
+    font-family: var(--font-hud);
+    font-size: 19px;
+    line-height: var(--lh-snug);
+    white-space: pre-wrap;
+    color: var(--dos-text);
+    background: var(--dos-blue);
+    border: 4px double var(--dos-text);
+  }
+
+  /* ---------- briefing ---------- */
+  .briefing-card {
+    max-width: 520px;
+    text-align: left;
+  }
+  .briefing-kicker {
+    font-family: var(--font-hud);
+    font-size: var(--fs-hud);
+    color: var(--accent);
+  }
+  .briefing-body {
+    color: var(--text);
+  }
+
+  /* ---------- editor ---------- */
+  .editor {
+    margin: var(--sp-5) 0 var(--sp-4);
+    font-family: var(--font-hud);
+    font-size: var(--fs-hud);
+    color: var(--text-dim);
+  }
+  .editor-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-7);
+    margin-bottom: var(--sp-3);
+  }
+  .editor input,
+  .editor textarea {
+    padding: var(--sp-1) var(--sp-3);
+    font-size: 17px;
+  }
+  .editor textarea {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: var(--fs-small);
+  }
+  .editor-brief {
+    display: block;
+    margin-bottom: var(--sp-3);
+  }
+  .editor-palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+    margin-bottom: var(--sp-3);
+  }
+  .editor-status {
+    margin: var(--sp-2) 0 0;
+    color: var(--accent);
+  }
+}

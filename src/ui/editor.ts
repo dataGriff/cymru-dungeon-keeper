@@ -102,13 +102,13 @@ export function createEditor(handlers: { onPlay(level: Level): void; onGridChang
     },
   };
   for (const { tile, label, key } of PALETTE) {
-    const b = el('button', { className: 'tool', text: label, title: `Paint ${label} (${key})` });
+    const b = el('button', { className: 'btn btn--small', text: label, title: `Paint ${label} (${key})` });
     b.addEventListener('click', () => editor.setBrush(tile));
     brushes.set(tile, b);
     palette.append(b);
   }
   editor.setBrush(Tile.Floor);
-  const play = el('button', { className: 'tool', text: 'Validate & play' });
+  const play = el('button', { className: 'btn btn--small', text: 'Validate & play' });
   play.addEventListener('click', () => {
     const r = editor.build();
     if ('errors' in r) {
@@ -118,7 +118,7 @@ export function createEditor(handlers: { onPlay(level: Level): void; onGridChang
     status.textContent = '';
     handlers.onPlay(r.level);
   });
-  const exportBtn = el('button', { className: 'tool', text: 'Export level' });
+  const exportBtn = el('button', { className: 'btn btn--small', text: 'Export level' });
   exportBtn.addEventListener('click', () => {
     const r = editor.build();
     if ('errors' in r) {
@@ -132,7 +132,7 @@ export function createEditor(handlers: { onPlay(level: Level): void; onGridChang
     a.click();
     status.textContent = `Exported ${a.download}.`;
   });
-  const importBtn = el('button', { className: 'tool', text: 'Import level' });
+  const importBtn = el('button', { className: 'btn btn--small', text: 'Import level' });
   importBtn.addEventListener('click', () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -151,7 +151,7 @@ export function createEditor(handlers: { onPlay(level: Level): void; onGridChang
     });
     input.click();
   });
-  const clear = el('button', { className: 'tool', text: 'Fill with rock' });
+  const clear = el('button', { className: 'btn btn--small', text: 'Fill with rock' });
   clear.addEventListener('click', () => {
     editor.grid.tiles.fill(Tile.Rock);
     handlers.onGridChange();

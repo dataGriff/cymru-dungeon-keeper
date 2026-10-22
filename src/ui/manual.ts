@@ -58,7 +58,7 @@ export function createManual(h: ManualHandlers): Manual {
   const tradeTitle = el('div', { className: 'manual-trade-title', text: 'A WORD WITH THE EMISSARY' });
   const tradeText = el('p', { className: 'manual-trade-text', text: 'The emissary has terms, and a minute.' });
   const tradeButtons = (Object.keys(TRADES) as TradeKind[]).map((k) => {
-    const b = el('button', { className: 'manual-trade-button', text: `${TRADES[k].label} · ${TRADES[k].cost}g`, title: TRADES[k].text });
+    const b = el('button', { className: 'btn btn--ink', text: `${TRADES[k].label} · ${TRADES[k].cost}g`, title: TRADES[k].text });
     b.addEventListener('click', () => h.onTrade(k));
     return b;
   });
@@ -189,8 +189,8 @@ export function createManual(h: ManualHandlers): Manual {
   };
 
   for (const kind of BESTIARY_ORDER) {
-    const b = el('button', { className: 'manual-tab', text: BESTIARY[kind].name });
-    b.classList.toggle('manual-tab-unseen', stateOf(kind) === 'unseen');
+    const b = el('button', { className: 'btn btn--tab', text: BESTIARY[kind].name });
+    b.classList.toggle('is-unseen', stateOf(kind) === 'unseen');
     b.setAttribute('role', 'tab');
     b.addEventListener('click', () => open(kind));
     b.addEventListener('keydown', (ev) => {
@@ -215,7 +215,7 @@ export function createManual(h: ManualHandlers): Manual {
     tabs.append(b);
   }
   for (const kind of ENGINE_ORDER) {
-    const b = el('button', { className: 'manual-tab', text: ENGINES[kind].name });
+    const b = el('button', { className: 'btn btn--tab', text: ENGINES[kind].name });
     b.setAttribute('role', 'tab');
     b.addEventListener('click', () => openEngine(kind));
     engineButtons.set(kind, b);
@@ -236,7 +236,7 @@ export function createManual(h: ManualHandlers): Manual {
       if (key === pagesKey) return;
       pagesKey = key;
       pages = next;
-      for (const [k, b] of tabButtons) b.classList.toggle('manual-tab-unseen', stateOf(k) === 'unseen');
+      for (const [k, b] of tabButtons) b.classList.toggle('is-unseen', stateOf(k) === 'unseen');
       open(current);
     },
     setEmissary(present, gold) {

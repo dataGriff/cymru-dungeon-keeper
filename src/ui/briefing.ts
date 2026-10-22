@@ -4,7 +4,7 @@ import { el } from './dom';
 
 export function showBriefing(parent: HTMLElement, level: Level, index: number | null): Promise<void> {
   return new Promise((resolve) => {
-    const go = el('button', { className: 'overlay-button', text: 'Descend' });
+    const go = el('button', { className: 'btn btn--primary', text: 'Descend' });
     const card = el('div', { className: 'overlay-card briefing-card' }, [
       el('div', { className: 'briefing-kicker', text: index === null ? level.lesson : `Level ${index + 1} of 5 · ${level.lesson}` }),
       el('h2', { className: 'overlay-title', text: level.name }),

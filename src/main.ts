@@ -168,7 +168,7 @@ function main(): void {
   // Save, load, export, import.
   const saveRow = el('div', { className: 'desk-panel saves' });
   const mkBtn = (label: string, title: string, fn: () => void): HTMLButtonElement => {
-    const b = el('button', { className: 'tool', text: label, title });
+    const b = el('button', { className: 'btn btn--small', text: label, title });
     b.addEventListener('click', fn);
     saveRow.append(b);
     return b;
@@ -229,7 +229,7 @@ function main(): void {
     return el('label', { className: 'mixer-row' }, [el('span', { text: label }), input]);
   };
   const mixer = el('details', { className: 'desk-menu mixer' }, [
-    el('summary', { text: 'Mixer' }),
+    el('summary', { className: 'btn btn--menu', text: 'Mixer' }),
     el('div', { className: 'desk-panel desk-column' }, [slider('Master', 'master'), slider('Ambient', 'ambient'), slider('Effects', 'sfx')]),
   ]);
   // Settings: motion, flicker, text size, scale, safe colours.
@@ -263,7 +263,7 @@ function main(): void {
     return el('label', { className: 'mixer-row' }, [el('span', { text: label }), sel]);
   };
   const settingsPanel = el('details', { className: 'desk-menu mixer settings' }, [
-    el('summary', { text: 'Settings' }),
+    el('summary', { className: 'btn btn--menu', text: 'Settings' }),
     el('div', { className: 'desk-panel desk-column' }, [
     check('Reduce motion', 'reducedMotion'),
     check('Steady torches (no flicker)', 'noFlicker'),
@@ -283,7 +283,7 @@ function main(): void {
     el('p', { className: 'settings-hint', text: 'F11 fullscreen · F3 frame timings · arrow keys move the cursor on the board, Enter uses the tool, Backspace is the right-click.' }),
     ]),
   ]);
-  const hall = el('details', { className: 'desk-menu' }, [el('summary', { text: 'Hall' }), saveRow]);
+  const hall = el('details', { className: 'desk-menu' }, [el('summary', { className: 'btn btn--menu', text: 'Hall' }), saveRow]);
   // Only one desk menu open at a time.
   const menus = [hall, mixer, settingsPanel];
   for (const m of menus) m.addEventListener('toggle', () => {

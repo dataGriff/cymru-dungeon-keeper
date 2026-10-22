@@ -1,0 +1,216 @@
+/* The manual: a photographed page of parchment, in ink. */
+
+@layer screens {
+  .manual-page {
+    position: relative;
+    padding: 26px var(--sp-9) var(--sp-8);
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse at center, rgb(var(--paper-rgb) / 0.35) 0%, transparent 60%, rgb(var(--paper-shadow-rgb) / 0.35) 100%),
+      repeating-linear-gradient(0deg, rgb(var(--well-rgb) / 0.012) 0 2px, transparent 2px 4px),
+      linear-gradient(160deg, var(--parchment-light) 0%, var(--parchment) 45%, var(--parchment-dark) 100%);
+    box-shadow:
+      0 12px 36px rgb(var(--well-rgb) / 0.7),
+      inset 0 0 60px rgb(var(--paper-shadow-rgb) / 0.25);
+    transform: rotate(-0.4deg);
+  }
+  .manual-page::before {
+    content: '';
+    position: absolute;
+    inset: 9px;
+    border: 1px solid rgb(var(--ink-rule-rgb) / 0.45);
+    pointer-events: none;
+  }
+  /* Paper grain and a slightly misaligned ink pass: the page should look photographed. */
+  .manual-page::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.28;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.27 0 0 0 0 0.18 0 0 0 0.5 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+  }
+  .manual-name,
+  .manual-flavour,
+  .manual-notes {
+    text-shadow: 0.4px 0.3px 0 rgb(var(--ink-rule-rgb) / 0.25);
+  }
+
+  .manual-header {
+    margin-bottom: var(--sp-5);
+    padding-bottom: var(--sp-3);
+    font-family: var(--font-display);
+    font-size: var(--fs-caption);
+    letter-spacing: var(--tr-label);
+    text-align: right;
+    color: var(--ink-soft);
+    border-bottom: 1px solid rgb(var(--ink-rule-rgb) / 0.35);
+  }
+  .manual-section {
+    margin: 0 0 var(--sp-2);
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .manual-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin-bottom: 14px;
+  }
+  .manual-tabs-engines {
+    padding-top: var(--sp-3);
+    border-top: 1px dotted rgb(var(--ink-rule-rgb) / 0.35);
+  }
+
+  .manual-head {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    margin-bottom: var(--sp-5);
+  }
+  .manual-portrait {
+    flex: none;
+    width: var(--w-portrait);
+    height: var(--w-portrait);
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    background: rgb(var(--ink-rule-rgb) / 0.12);
+    border: 1px solid rgb(var(--ink-rule-rgb) / 0.45);
+  }
+  .manual-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 24px;
+    line-height: 1.1;
+  }
+  .manual-gloss {
+    margin: var(--sp-2) 0 0;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+  .manual-flavour {
+    margin: 0 0 var(--sp-6);
+    text-align: justify;
+    hyphens: auto;
+  }
+  .manual-flavour::first-letter {
+    float: left;
+    padding: 3px var(--sp-3) 0 0;
+    font-family: var(--font-display);
+    font-size: 2.1em;
+    line-height: 0.85;
+  }
+  .manual-faded {
+    margin: 0 0 var(--sp-6);
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+
+  .manual-stats {
+    display: grid;
+    grid-template-columns: auto 1fr auto 1fr;
+    gap: var(--sp-1) var(--sp-5);
+    margin: 0 0 var(--sp-6);
+    padding: var(--sp-4) var(--sp-5);
+    font-size: var(--fs-small);
+    border-top: 1px solid rgb(var(--ink-rule-rgb) / 0.35);
+    border-bottom: 1px solid rgb(var(--ink-rule-rgb) / 0.35);
+  }
+  .manual-stats dt {
+    align-self: baseline;
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: var(--tr-caps);
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .manual-stats dd {
+    align-self: baseline;
+    margin: 0;
+    font-family: var(--font-hud);
+    font-size: var(--fs-title-small);
+    line-height: var(--lh-tight);
+  }
+
+  .manual-notes-title {
+    margin: 0 0 var(--sp-2);
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--fs-small);
+  }
+  .manual-notes {
+    margin: 0 0 14px;
+    padding-left: 18px;
+    font-size: 15.5px;
+  }
+  .manual-notes li {
+    margin-bottom: 3px;
+  }
+  .manual-footnote {
+    margin: 0;
+    padding-top: var(--sp-4);
+    font-size: 13.5px;
+    font-style: italic;
+    color: var(--ink-soft);
+    border-top: 1px solid rgb(var(--ink-rule-rgb) / 0.35);
+  }
+
+  /* The emissary's card. */
+  .manual-trade {
+    margin: 0 0 14px;
+    padding: var(--sp-5) var(--sp-6);
+    background: rgb(var(--paper-rgb) / 0.35);
+    border: 1px solid rgb(var(--ink-rule-rgb) / 0.55);
+  }
+  .manual-trade-title {
+    margin-bottom: var(--sp-2);
+    font-family: var(--font-display);
+    font-size: var(--fs-caption);
+    letter-spacing: 0.18em;
+  }
+  .manual-trade-text {
+    margin: 0 0 var(--sp-4);
+    font-size: var(--fs-small);
+    font-style: italic;
+  }
+  .manual-trade-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+  }
+
+  /* Turning a page. */
+  .manual-turn {
+    animation: manual-turn var(--dur-page) ease-out;
+    transform-origin: left center;
+  }
+  @keyframes manual-turn {
+    0% {
+      transform: rotate(-0.4deg) perspective(900px) rotateY(-14deg);
+      opacity: 0.55;
+    }
+    100% {
+      transform: rotate(-0.4deg) perspective(900px) rotateY(0deg);
+      opacity: 1;
+    }
+  }
+
+  @media (max-width: 440px) {
+    .manual-page {
+      padding: var(--sp-8) 14px var(--sp-7);
+      transform: none;
+    }
+    .manual-head {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .manual-stats {
+      grid-template-columns: auto 1fr;
+    }
+  }
+}

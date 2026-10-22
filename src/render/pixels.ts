@@ -5,6 +5,7 @@
  * scripts/lib/pixels.mjs mirrors this for the box and manual builders.
  */
 import pixelsJson from '../../art/pixels.json';
+import { B } from './colors';
 
 export interface PixelMap {
   note?: string;
@@ -64,7 +65,7 @@ export function drawPixelMap(
       }
       let end = x + 1;
       while (end < row.length && row[end] === ch) end++;
-      ctx.fillStyle = palette[ch] ?? '#ff00ff';
+      ctx.fillStyle = palette[ch] ?? B.missing;
       ctx.fillRect(Math.round(x0 + x * px), Math.round(y0 + y * px), (end - x) * px, px);
       x = end;
     }

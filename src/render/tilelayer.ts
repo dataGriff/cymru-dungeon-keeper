@@ -3,9 +3,11 @@
  * art, redrawn only where the map changed. A change repaints the tile and
  * its eight neighbours, since faces, shadows and room edges depend on them.
  * Compared by value each frame (the grid is small), so the editor, digs,
- * room painting and loads all invalidate it without being told.
+ * room painting and loads all invalidate it without being told; a theme
+ * change (a new colours version) repaints everything.
  */
 import type { Grid } from '../sim/grid';
+import { colorsVersion } from './colors';
 import { TILE, drawStaticTile } from './tiles';
 
 export interface TileLayer {
@@ -15,13 +17,15 @@ export interface TileLayer {
   h: number;
   /** What the layer currently shows. */
   tiles: Uint8Array;
+  /** The colours it was painted with (see colors.ts). */
+  colors: number;
 }
 
 export function createTileLayer(): TileLayer {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas 2D is not available');
-  return { canvas, ctx, w: 0, h: 0, tiles: new Uint8Array(0) };
+  return { canvas, ctx, w: 0, h: 0, tiles: new Uint8Array(0), colors: colorsVersion() };
 }
 
 /** Bring the layer up to date with the grid; returns how many tiles were repainted. */
@@ -33,6 +37,10 @@ export function syncTileLayer(layer: TileLayer, g: Grid): number {
     layer.canvas.height = g.h * TILE;
     layer.ctx.imageSmoothingEnabled = false;
     layer.tiles = new Uint8Array(g.tiles.length).fill(255);
+  }
+  if (layer.colors !== colorsVersion()) {
+    layer.colors = colorsVersion();
+    layer.tiles.fill(255);
   }
   const dirty = new Uint8Array(g.tiles.length);
   let any = false;

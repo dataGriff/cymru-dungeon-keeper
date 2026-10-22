@@ -7,12 +7,13 @@
  */
 import type { Entity } from '../sim/entities';
 import { type Grid, Tile, tilesOf } from '../sim/grid';
+import { alpha } from '../design/color';
+import { B } from './colors';
 import { TILE } from './tiles';
 
 /** Fraction of the light map scale: 0.5 means half resolution. */
 export const LIGHTMAP_SCALE = 0.5;
 /** The hall's own dark: low enough to hide, high enough that undug rock still reads as rock. */
-export const AMBIENT = 'rgb(70, 57, 88)';
 /** The ambient as a 0..1 brightness, for sampling the light at a point. */
 export const AMBIENT_LEVEL = 0.34;
 
@@ -40,27 +41,27 @@ export function collectLights(g: Grid, entities: readonly Entity[]): Light[] {
   const add = (x: number, y: number, r: number, color: string, phase: number, flicker = 0.06, temper: Light['temper'] = 'none'): void => {
     lights.push({ x: (x + 0.5) * TILE, y: (y + 0.5) * TILE, r, color, phase, flicker, temper });
   };
-  for (const p of tilesOf(g, Tile.Heart)) add(p.x, p.y, 120, 'rgba(255, 70, 70, 0.95)', 0, 0.04, 'warm');
-  for (const p of tilesOf(g, Tile.Portal)) add(p.x, p.y, 74, 'rgba(170, 110, 255, 0.9)', 1.3, 0.05);
-  for (const p of tilesOf(g, Tile.Gate)) add(p.x, p.y, 66, 'rgba(210, 220, 255, 0.85)', 2.1, 0.02, 'cold');
+  for (const p of tilesOf(g, Tile.Heart)) add(p.x, p.y, 120, alpha(B.light.heart, 0.95), 0, 0.04, 'warm');
+  for (const p of tilesOf(g, Tile.Portal)) add(p.x, p.y, 74, alpha(B.light.portal, 0.9), 1.3, 0.05);
+  for (const p of tilesOf(g, Tile.Gate)) add(p.x, p.y, 66, alpha(B.light.gate, 0.85), 2.1, 0.02, 'cold');
   tilesOf(g, Tile.Lair).forEach((p, i) => {
-    if (i % 3 === 0) add(p.x, p.y, 58, 'rgba(255, 150, 60, 0.9)', i, 0.06, 'warm');
+    if (i % 3 === 0) add(p.x, p.y, 58, alpha(B.light.lair, 0.9), i, 0.06, 'warm');
   });
   tilesOf(g, Tile.Hatchery).forEach((p, i) => {
-    if (i % 4 === 0) add(p.x, p.y, 54, 'rgba(255, 170, 80, 0.85)', i + 0.5, 0.06, 'warm');
+    if (i % 4 === 0) add(p.x, p.y, 54, alpha(B.light.hatchery, 0.85), i + 0.5, 0.06, 'warm');
   });
   tilesOf(g, Tile.Treasury).forEach((p, i) => {
-    if (i % 4 === 0) add(p.x, p.y, 54, 'rgba(255, 200, 90, 0.85)', i + 0.7);
+    if (i % 4 === 0) add(p.x, p.y, 54, alpha(B.light.treasury, 0.85), i + 0.7);
   });
   tilesOf(g, Tile.Pool).forEach((p, i) => {
-    if (i % 3 === 0) add(p.x, p.y, 48, 'rgba(90, 170, 255, 0.8)', i + 0.9, 0.02);
+    if (i % 3 === 0) add(p.x, p.y, 48, alpha(B.light.pool, 0.8), i + 0.9, 0.02);
   });
   for (const e of entities) {
-    if (e.kind === 'coblyn') add(e.x, e.y, 48, 'rgba(255, 180, 90, 0.8)', e.id);
+    if (e.kind === 'coblyn') add(e.x, e.y, 48, alpha(B.light.coblyn, 0.8), e.id);
     else if (e.kind === 'knight' || e.kind === 'priest' || e.kind === 'lord' || e.kind === 'levy' || e.kind === 'relic')
-      add(e.x, e.y, 60, 'rgba(255, 220, 160, 0.8)', e.id);
-    else if (e.kind === 'pwca') add(e.x, e.y, 22, 'rgba(255, 230, 80, 0.7)', e.id, 0.1);
-    else if (e.kind === 'teg') add(e.x, e.y, 42, 'rgba(200, 255, 200, 0.7)', e.id, 0.02);
+      add(e.x, e.y, 60, alpha(B.light.mortal, 0.8), e.id);
+    else if (e.kind === 'pwca') add(e.x, e.y, 22, alpha(B.light.pwca, 0.7), e.id, 0.1);
+    else if (e.kind === 'teg') add(e.x, e.y, 42, alpha(B.light.teg, 0.7), e.id, 0.02);
   }
   return lights;
 }
@@ -105,7 +106,7 @@ export function drawLighting(
   const h = g.h * TILE;
   const k = LIGHTMAP_SCALE;
   map.globalCompositeOperation = 'source-over';
-  map.fillStyle = opts.hunt ? 'rgb(70, 84, 110)' : AMBIENT;
+  map.fillStyle = opts.hunt ? B.light.ambientHunt : B.light.ambient;
   map.fillRect(0, 0, map.canvas.width, map.canvas.height);
   map.globalCompositeOperation = 'lighter';
   for (const l of lights) {
@@ -116,10 +117,10 @@ export function drawLighting(
     const x = l.x * k;
     const y = l.y * k;
     const grad = map.createRadialGradient(x, y, 0, x, y, r);
-    const color = opts.hunt ? 'rgba(230, 240, 255, 0.95)' : l.color;
+    const color = opts.hunt ? alpha(B.light.hunt, 0.95) : l.color;
     grad.addColorStop(0, color);
     grad.addColorStop(0.45, color.replace(/[\d.]+\)$/, '0.55)'));
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, alpha(B.shadow, 0));
     map.fillStyle = grad;
     map.fillRect(x - r, y - r, r * 2, r * 2);
   }
@@ -129,12 +130,12 @@ export function drawLighting(
   ctx.drawImage(map.canvas, 0, 0, w, h);
   ctx.restore();
   ctx.imageSmoothingEnabled = false;
-  ctx.fillStyle = 'rgba(255, 122, 31, 0.035)';
+  ctx.fillStyle = alpha(B.light.wash, 0.035);
   ctx.fillRect(0, 0, w, h);
   // A soft vignette, so the eye stays on the hall and off the frame.
   const v = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.72);
-  v.addColorStop(0, 'rgba(0, 0, 0, 0)');
-  v.addColorStop(1, 'rgba(4, 2, 8, 0.45)');
+  v.addColorStop(0, alpha(B.light.vignette, 0));
+  v.addColorStop(1, alpha(B.light.vignette, 0.45));
   ctx.fillStyle = v;
   ctx.fillRect(0, 0, w, h);
 }

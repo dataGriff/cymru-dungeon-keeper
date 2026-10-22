@@ -71,11 +71,11 @@ export function createTitleScreen(artUrl: string, menu: TitleMenu): TitleScreen 
   art.src = artUrl;
   art.alt = 'Steward of Annwn. A white hound with red ears faces a small knight beneath a cairn.';
   const press = el('p', { className: 'title-press', text: menu.progress > 0 ? `Press any key · continue at level ${menu.progress + 1}` : 'Press any key' });
-  const creditsBtn = el('button', { className: 'title-button', text: 'Credits' });
+  const creditsBtn = el('button', { className: 'btn btn--ghost btn--small', text: 'Credits' });
   // The menu: pick a level, a sandbox seed, the editor, or the saved game.
   const levelButtons = menu.levels.map((l, i) => {
     const locked = i > menu.progress;
-    const b = el('button', { className: 'title-level', text: `${i + 1}. ${l.name}`, title: locked ? 'Not yet reached' : l.lesson });
+    const b = el('button', { className: 'btn btn--level', text: `${i + 1}. ${l.name}`, title: locked ? 'Not yet reached' : l.lesson });
     b.disabled = locked;
     b.addEventListener('click', (ev) => {
       ev.stopPropagation();
@@ -88,19 +88,19 @@ export function createTitleScreen(artUrl: string, menu: TitleMenu): TitleScreen 
   seedInput.type = 'number';
   seedInput.value = String(Math.floor(Math.random() * 100000));
   seedInput.setAttribute('aria-label', 'Sandbox seed');
-  const sandboxBtn = el('button', { className: 'title-level', text: 'Sandbox' });
+  const sandboxBtn = el('button', { className: 'btn btn--level', text: 'Sandbox' });
   sandboxBtn.addEventListener('click', (ev) => {
     ev.stopPropagation();
     choice = { mode: 'sandbox', seed: Number(seedInput.value) || 1 };
     pick();
   });
-  const editorBtn = el('button', { className: 'title-level', text: 'Editor' });
+  const editorBtn = el('button', { className: 'btn btn--level', text: 'Editor' });
   editorBtn.addEventListener('click', (ev) => {
     ev.stopPropagation();
     choice = { mode: 'editor' };
     pick();
   });
-  const loadBtn = el('button', { className: 'title-level', text: menu.hasSave ? `Load save (${menu.hasSave})` : 'No saved game' });
+  const loadBtn = el('button', { className: 'btn btn--level', text: menu.hasSave ? `Load save (${menu.hasSave})` : 'No saved game' });
   loadBtn.disabled = !menu.hasSave;
   loadBtn.addEventListener('click', (ev) => {
     ev.stopPropagation();

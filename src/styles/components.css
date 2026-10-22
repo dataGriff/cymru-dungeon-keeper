@@ -1,0 +1,523 @@
+/* Reusable pieces: the one button, the HUD, chips, tooltip, overlay card, log, menus. */
+
+@layer components {
+  /* ================================================================ button
+     One component. Variants change size and colour; the states are shared:
+     hover, pressed (:active), on (.active / aria-pressed / aria-selected),
+     disabled and focus-visible (in base.css). */
+  .btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-6) 3px;
+    font-family: var(--font-hud);
+    font-size: var(--fs-hud);
+    line-height: var(--lh-tight);
+    color: var(--text-dim);
+    background: linear-gradient(180deg, var(--surface-high), var(--surface-low));
+    border: 1px solid var(--line-control);
+    border-bottom-width: 3px;
+    cursor: pointer;
+    transition:
+      color var(--dur-fast),
+      border-color var(--dur-fast),
+      background-color var(--dur-fast);
+  }
+  .btn:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--accent-dim);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+    border-bottom-width: 2px;
+  }
+  .btn:is(.active, [aria-pressed='true'], [aria-selected='true']) {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: linear-gradient(180deg, var(--surface-active), var(--surface-active-low));
+    box-shadow: inset 0 0 12px rgb(var(--accent-rgb) / 0.18);
+  }
+  .btn:disabled {
+    color: var(--text-disabled);
+    cursor: not-allowed;
+  }
+
+  /* An icon, a label, a cost chip and a key hint: the toolbar's tools. */
+  .btn--tool {
+    justify-content: flex-start;
+    gap: 5px;
+    min-height: var(--w-control);
+    padding: var(--sp-2) var(--sp-4) 3px var(--sp-3);
+  }
+  /* Pause, speeds, restart. */
+  .btn--square {
+    min-width: var(--w-control);
+    min-height: 38px;
+    padding: var(--sp-2) var(--sp-4);
+  }
+  /* The answer to an overlay. */
+  .btn--primary {
+    padding: var(--sp-4) var(--sp-7) var(--sp-3);
+    font-size: var(--fs-hud-large);
+    color: var(--accent);
+    background: transparent;
+    border-color: var(--accent);
+    border-bottom-width: 1px;
+  }
+  .btn--primary:hover:not(:disabled) {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--surface-active-low);
+  }
+  /* The other answers. */
+  .btn--ghost {
+    padding: var(--sp-4) var(--sp-7) var(--sp-3);
+    font-size: var(--fs-hud-large);
+    background: transparent;
+    border-color: var(--line-strong);
+    border-bottom-width: 1px;
+  }
+  .btn--ghost:hover:not(:disabled) {
+    background: var(--surface-active-low);
+  }
+  /* A row in a list of levels. */
+  .btn--level {
+    justify-content: flex-start;
+    width: 100%;
+    text-align: left;
+    color: var(--text);
+    background: var(--surface);
+    border-color: var(--line-strong);
+    border-bottom-width: 1px;
+  }
+  .btn--level:hover:not(:disabled) {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  /* Compact: desk panels, the editor, credits. */
+  .btn--small,
+  .btn--ghost.btn--small {
+    padding: var(--sp-2) var(--sp-5) 3px;
+    font-size: var(--fs-hud);
+  }
+  /* A tab on the parchment. */
+  .btn--tab {
+    padding: var(--sp-1) 7px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: var(--lh-body);
+    color: var(--ink-soft);
+    background: rgb(var(--sheen-rgb) / 0.18);
+    border: 1px solid rgb(var(--ink-rule-rgb) / 0.35);
+  }
+  .btn--tab:hover:not(:disabled) {
+    color: var(--ink);
+    border-color: rgb(var(--ink-rule-rgb) / 0.35);
+  }
+  .btn--tab:is(.active, [aria-pressed='true'], [aria-selected='true']) {
+    color: var(--parchment);
+    background: var(--ink);
+    border-color: var(--ink);
+    box-shadow: none;
+  }
+  .btn--tab.is-unseen {
+    color: rgb(var(--ink-soft-rgb) / 0.55);
+    border-style: dashed;
+  }
+  /* Ink on parchment: the emissary's trades. */
+  .btn--ink {
+    padding: var(--sp-2) var(--sp-5) 3px;
+    color: var(--parchment);
+    background: var(--ink);
+    border: 1px solid var(--ink);
+  }
+  .btn--ink:hover:not(:disabled) {
+    color: var(--parchment-light);
+    border-color: var(--ink-rule);
+  }
+  .btn--ink:disabled {
+    color: var(--parchment);
+    opacity: 0.45;
+  }
+  /* The summary of a desk menu. */
+  .btn--menu {
+    display: inline-flex;
+    list-style: none;
+    line-height: var(--lh-body);
+    padding: var(--sp-2) var(--sp-6) 3px;
+    background: var(--surface);
+    border-bottom-width: 1px;
+  }
+  .btn--menu::-webkit-details-marker {
+    display: none;
+  }
+  .btn--menu::after {
+    content: ' ▾';
+    color: var(--text-disabled);
+  }
+  [open] > .btn--menu {
+    color: var(--accent);
+    border-color: var(--accent-dim);
+  }
+
+  /* ---------- parts of a tool button ---------- */
+  .tool-label {
+    font-size: var(--fs-hud);
+  }
+  .tool-cost {
+    padding: var(--sp-1) 3px 1px;
+    font-size: 14px;
+    line-height: var(--lh-tight);
+    color: var(--gold);
+    background: rgb(var(--gold-rgb) / 0.1);
+    border: 1px solid rgb(var(--gold-rgb) / 0.3);
+  }
+  .tool-key {
+    position: absolute;
+    top: 1px;
+    right: 3px;
+    font-family: var(--font-hud);
+    font-size: var(--fs-caption);
+    line-height: var(--lh-tight);
+    color: var(--text-disabled);
+  }
+  .btn.active .tool-key {
+    color: var(--accent);
+  }
+  .is-poor .tool-cost {
+    color: rgb(var(--danger-rgb) / 0.6);
+    background: transparent;
+    border-color: rgb(var(--danger-rgb) / 0.3);
+    text-decoration: line-through;
+  }
+  .is-poor .pixel-icon {
+    opacity: 0.45;
+  }
+  @media (max-width: 720px) {
+    /* Icons only on small screens; the label stays for screen readers. */
+    .tool-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+    .btn--tool {
+      padding-right: 7px;
+    }
+  }
+
+  /* ---------- groups of tools ---------- */
+  .tool-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .tool-group-name {
+    padding-left: var(--sp-1);
+    font-family: var(--font-display);
+    font-size: var(--fs-micro);
+    letter-spacing: var(--tr-label);
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .tool-group-row {
+    display: flex;
+    gap: 3px;
+    padding: 3px;
+    background: rgb(var(--well-rgb) / 0.28);
+    border: 1px solid var(--line-faint);
+  }
+
+  /* ================================================================ HUD */
+  .hud {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-3) var(--sp-5);
+    margin-bottom: var(--sp-4);
+    padding: 7px var(--sp-5);
+    /* Two lines reserved so a longer readout never shifts the board. */
+    min-height: calc(2 * var(--fs-hud-large) + var(--sp-2) + var(--sp-6));
+    font-family: var(--font-hud);
+    font-size: var(--fs-hud-large);
+    line-height: var(--lh-tight);
+    color: var(--text);
+    background:
+      linear-gradient(180deg, rgb(var(--sheen-rgb) / 0.03), rgb(var(--well-rgb) / 0.15)),
+      var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent-dim);
+    box-shadow:
+      inset 0 1px 0 rgb(var(--sheen-rgb) / 0.04),
+      0 2px 0 var(--line-deep);
+  }
+  .hud-status {
+    margin-left: auto;
+  }
+  .hud-danger {
+    color: var(--danger);
+  }
+  .hud-clock {
+    color: var(--accent);
+  }
+  .hud-tally {
+    color: var(--text-dim);
+  }
+  .hud-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-1) var(--sp-4) var(--sp-1) var(--sp-3);
+    background: rgb(var(--well-rgb) / 0.25);
+    border: 1px solid var(--line-faint);
+  }
+  .hud-danger.hud-cell {
+    border-color: var(--danger-deep);
+  }
+  .hud-heart {
+    position: relative;
+    padding-bottom: 5px;
+  }
+  .hud-bar {
+    position: absolute;
+    left: var(--sp-3);
+    right: var(--sp-4);
+    bottom: var(--sp-1);
+    height: 2px;
+    background: var(--danger-well);
+  }
+  .hud-bar-fill {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--heart), var(--heart-bright));
+    transition: width var(--dur-base);
+  }
+  .hud-danger .hud-bar-fill {
+    background: var(--heart-bright);
+    animation: hud-throb 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes hud-throb {
+    to {
+      opacity: 0.45;
+    }
+  }
+  .hud-preview {
+    display: inline-flex;
+    flex-basis: 100%;
+    align-items: flex-end;
+    gap: var(--sp-1);
+    min-height: 0;
+  }
+  .hud-preview:empty {
+    display: none;
+  }
+  .hud-icon {
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+  }
+
+  /* ================================================================ log */
+  .log {
+    position: relative;
+    min-height: 72px;
+    padding: var(--sp-3) var(--sp-5);
+    font-family: var(--font-hud);
+    font-size: 19px;
+    line-height: var(--lh-snug);
+    color: var(--text-dim);
+    background:
+      linear-gradient(180deg, rgb(var(--well-rgb) / 0.2), transparent 40%),
+      var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line-control);
+  }
+  .log-line {
+    position: relative;
+    padding-left: 14px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    opacity: 0.55;
+  }
+  .log-line::before {
+    content: '';
+    position: absolute;
+    left: var(--sp-1);
+    top: 0.5em;
+    width: var(--sp-2);
+    height: var(--sp-2);
+    background: var(--frame-high);
+  }
+  .log-line:nth-child(2) {
+    opacity: 0.75;
+  }
+  .log-latest {
+    color: var(--text);
+    opacity: 1;
+  }
+  .log-latest::before {
+    background: var(--accent);
+  }
+
+  /* ================================================================ tooltip */
+  .tooltip {
+    position: absolute;
+    z-index: var(--z-tooltip);
+    padding: 3px var(--sp-4) var(--sp-1);
+    font-family: var(--font-hud);
+    font-size: 17px;
+    line-height: 1.1;
+    white-space: nowrap;
+    color: var(--text);
+    background: rgb(var(--bg-rgb) / 0.92);
+    border: 1px solid var(--accent-dim);
+    pointer-events: none;
+  }
+
+  /* ================================================================ overlay card */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--sp-8);
+    background: rgb(var(--line-deep-rgb) / 0.78);
+  }
+  .overlay-card {
+    max-width: 440px;
+    padding: 22px 26px;
+    text-align: center;
+    background: var(--surface);
+    border: 1px solid var(--accent-dim);
+    box-shadow: 0 0 40px rgb(var(--accent-rgb) / 0.15);
+  }
+  .overlay-lost .overlay-card {
+    border-color: var(--danger);
+    box-shadow: 0 0 40px rgb(var(--danger-rgb) / 0.15);
+  }
+  .overlay-title {
+    margin: 0 0 var(--sp-5);
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--fs-title);
+  }
+  .overlay-body {
+    margin: 0 0 18px;
+    color: var(--text-dim);
+  }
+  .overlay-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--sp-5);
+  }
+  /* Pausing shows a banner, not a wall: the steward can still plan. */
+  .overlay.overlay-pause {
+    align-items: flex-start;
+    padding: var(--sp-5);
+    background: transparent;
+    pointer-events: none;
+  }
+  .overlay-pause .overlay-card {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    max-width: none;
+    padding: var(--sp-4) 14px;
+    text-align: left;
+    background: rgb(var(--surface-rgb) / 0.92);
+    pointer-events: auto;
+  }
+  .overlay-pause .overlay-title {
+    margin: 0;
+    font-size: var(--fs-hud);
+  }
+  .overlay-pause .overlay-body {
+    display: none;
+  }
+  .overlay-pause .btn {
+    padding: var(--sp-2) var(--sp-5) 3px;
+    font-size: var(--fs-hud);
+  }
+
+  /* ================================================================ desk menus */
+  .desk-menu {
+    position: relative;
+    margin: 0;
+  }
+  .desk-menu[open] {
+    z-index: var(--z-menu);
+  }
+  /* Menus open upwards, over the log, so the board never moves. */
+  .desk-panel {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + var(--sp-2));
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+    width: max-content;
+    max-width: min(92vw, 420px);
+    padding: var(--sp-5);
+    background: var(--surface);
+    border: 1px solid var(--accent-dim);
+    box-shadow: var(--shadow-card);
+  }
+  .desk-column {
+    flex-direction: column;
+    gap: var(--sp-1);
+  }
+  .mixer {
+    font-family: var(--font-hud);
+    font-size: var(--fs-hud);
+    color: var(--text-dim);
+  }
+  .mixer-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-5);
+    padding: var(--sp-1) var(--sp-2);
+  }
+  .mixer-row span {
+    width: 80px;
+  }
+  .mixer input[type='range'] {
+    width: 160px;
+  }
+  .save-note {
+    align-self: center;
+    margin-left: var(--sp-3);
+    font-family: var(--font-hud);
+    font-size: var(--fs-hud);
+    color: var(--text-dim);
+  }
+  .settings-hint {
+    margin: var(--sp-2) var(--sp-2) 0;
+    font-size: 16px;
+    color: var(--text-dim);
+  }
+
+  /* ================================================================ profiler */
+  .profiler {
+    position: absolute;
+    top: var(--sp-3);
+    left: var(--sp-3);
+    z-index: var(--z-profiler);
+    margin: 0;
+    padding: var(--sp-3) var(--sp-4);
+    font-family: var(--font-hud);
+    font-size: var(--fs-hud-small);
+    line-height: var(--lh-snug);
+    color: var(--text);
+    background: rgb(var(--bg-rgb) / 0.85);
+    border: 1px solid var(--accent-dim);
+    pointer-events: none;
+  }
+}

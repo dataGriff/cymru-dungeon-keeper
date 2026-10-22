@@ -6,6 +6,7 @@
  */
 import figuresJson from '../../art/figures.json';
 import type { BeastKind } from '../data/bestiary';
+import { B } from './colors';
 
 export interface FigureSource {
   width: number;
@@ -23,7 +24,7 @@ export type Run = [number, number, number, number, string];
 export function figureGrid(kind: BeastKind): (string | null)[][] {
   const fig = FIGURES.figures[kind];
   if (!fig) return [];
-  return fig.rows.map((row) => [...row].map((ch) => (ch === '.' ? null : (fig.palette[ch] ?? '#ff00ff'))));
+  return fig.rows.map((row) => [...row].map((ch) => (ch === '.' ? null : (fig.palette[ch] ?? B.missing))));
 }
 
 export function outlined(grid: (string | null)[][], color: string): (string | null)[][] {

@@ -101,7 +101,7 @@ export function createToolbar(h: ToolbarHandlers): Toolbar {
     const row: HTMLElement[] = [];
     for (const { tool, label, icon, cost, hint } of tools) {
       const key = TOOL_KEYS[tool].toUpperCase();
-      const b = el('button', { className: 'tool tool-icon', title: `${label}${cost ? ` (${cost} gold)` : ''}. ${hint} Key ${key}.` });
+      const b = el('button', { className: 'btn btn--tool', title: `${label}${cost ? ` (${cost} gold)` : ''}. ${hint} Key ${key}.` });
       // The visible contents are the accessible name ("Lair 15 gold"); the hint is the description.
       b.append(iconCanvas(icon, icon === 'pit' || icon === 'boulder' || icon === 'snare' ? 1.5 : 2));
       b.append(el('span', { className: 'tool-label', text: label }));
@@ -118,23 +118,23 @@ export function createToolbar(h: ToolbarHandlers): Toolbar {
     root.append(group(name, row));
   }
   const pauseIcon = iconCanvas('pause', 2);
-  const pause = el('button', { className: 'tool tool-square', title: 'Pause the hall (Space)' }, [pauseIcon]);
+  const pause = el('button', { className: 'btn btn--square', title: 'Pause the hall (Space)' }, [pauseIcon]);
   pause.setAttribute('aria-label', 'Pause, key Space');
   pause.setAttribute('aria-keyshortcuts', 'Space');
   pause.addEventListener('click', h.onPause);
   const speedButtons = SPEEDS.map((sp) => {
-    const b = el('button', { className: 'tool tool-square tool-speed', text: `${sp}×`, title: `Speed ${sp}× (${sp})` });
+    const b = el('button', { className: 'btn btn--square', text: `${sp}×`, title: `Speed ${sp}× (${sp})` });
     b.setAttribute('aria-keyshortcuts', String(sp));
     b.addEventListener('click', () => h.onSpeed(sp));
     return b;
   });
-  const restart = el('button', { className: 'tool tool-square', title: 'Start again (R)' }, [iconCanvas('restart', 2)]);
+  const restart = el('button', { className: 'btn btn--square', title: 'Start again (R)' }, [iconCanvas('restart', 2)]);
   restart.setAttribute('aria-label', 'Restart, key R');
   restart.setAttribute('aria-keyshortcuts', 'R');
   restart.addEventListener('click', h.onRestart);
   const soundIcon = iconCanvas('horn', 2);
   const soundLabel = el('span', { className: 'tool-label', text: 'Off' });
-  const sound = el('button', { className: 'tool tool-sound', title: 'Sound: three drones and a dripping roof.' }, [soundIcon, soundLabel]);
+  const sound = el('button', { className: 'btn btn--tool', title: 'Sound: three drones and a dripping roof.' }, [soundIcon, soundLabel]);
   sound.setAttribute('aria-label', 'Sound: off');
   sound.addEventListener('click', h.onSound);
   root.append(group('Time', [pause, ...speedButtons, restart]), group('Sound', [sound]));
@@ -167,7 +167,7 @@ export function createToolbar(h: ToolbarHandlers): Toolbar {
       });
     },
     setGold(gold) {
-      for (const { b, cost } of costs) b.classList.toggle('tool-poor', gold < cost);
+      for (const { b, cost } of costs) b.classList.toggle('is-poor', gold < cost);
     },
   };
   bar.setActive('dig');

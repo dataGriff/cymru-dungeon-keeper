@@ -27,6 +27,13 @@ tasks:
     cmds:
       - npm run test
 
+  tokens:
+    desc: Regenerate src/styles/tokens.css from src/design/tokens.ts
+    cmds:
+      - npm run tokens
+    sources: [src/design/tokens.ts, src/design/themes.ts, src/design/css.ts]
+    generates: [src/styles/tokens.css]
+
   sprites:
     desc: Render art/figures.json into public/sprites.png
     cmds:

@@ -27,9 +27,9 @@ export interface Overlay {
 export function createOverlay(handlers: { onRestart: () => void; onResume: () => void; onTitle: () => void }): Overlay {
   const title = el('h2', { className: 'overlay-title' });
   const body = el('p', { className: 'overlay-body' });
-  const primary = el('button', { className: 'overlay-button' });
-  const secondary = el('button', { className: 'overlay-button overlay-secondary' });
-  const toTitle = el('button', { className: 'overlay-button overlay-secondary', text: 'Back to the title' });
+  const primary = el('button', { className: 'btn btn--primary' });
+  const secondary = el('button', { className: 'btn btn--ghost' });
+  const toTitle = el('button', { className: 'btn btn--ghost', text: 'Back to the title' });
   toTitle.addEventListener('click', handlers.onTitle);
   const buttons = el('div', { className: 'overlay-buttons' }, [primary, secondary, toTitle]);
   const card = el('div', { className: 'overlay-card' }, [title, body, buttons]);

@@ -3,7 +3,8 @@ import type { Entity } from '../sim/entities';
 import { CORPSE_SECONDS, type GameState, RUBBLE_SECONDS, type SimEvent, heartOf, portalOf, treasuryCapacity, vaultGold, warded } from '../sim/game';
 import { GATE_POS, type Vec, inBounds, isRock, markedTiles, tileAt } from '../sim/grid';
 import { type Light, type LightingOptions, collectLights, createLightMap, drawLighting, lightAt } from './lighting';
-import { PALETTE as P } from './palette';
+import { alpha } from '../design/color';
+import { B } from './colors';
 import { Particles } from './particles';
 import { drawPixels } from './pixels';
 import { type BeastTint, drawBeast, drawEngine } from './sprites';
@@ -73,11 +74,11 @@ function actionOf(e: Entity): 'sleep' | 'eat' | 'attack' | 'walk' | 'idle' {
 
 /** Under the lighting: the shadow on the floor and the steward's selection ring. */
 function drawGround(ctx: CanvasRenderingContext2D, p: Placed, selected: boolean): void {
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.fillStyle = alpha(B.shadow, 0.5);
   ctx.fillRect(p.cx - 5 * PX, p.baseY - PX, 10 * PX, 2 * PX);
   ctx.fillRect(p.cx - 3 * PX, p.baseY, 6 * PX, PX);
   if (selected) {
-    ctx.strokeStyle = P.bone;
+    ctx.strokeStyle = B.bone;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.ellipse(p.cx, p.baseY, 12, 4, 0, 0, Math.PI * 2);
@@ -92,25 +93,25 @@ function drawFigure(ctx: CanvasRenderingContext2D, p: Placed, t: number, lights:
   const tints: BeastTint[] = [];
   if (lights) {
     const lit = lightAt(lights, cx, baseY - 10);
-    tints.push({ color: '#07050c', alpha: (1 - lit) * 0.72 });
-    if (hunt) tints.push({ color: '#cfe0ff', alpha: 0.12 });
+    tints.push({ color: B.ink, alpha: (1 - lit) * 0.72 });
+    if (hunt) tints.push({ color: B.huntWash, alpha: 0.12 });
   }
-  if (e.flash > 0) tints.push({ color: '#ff3a3a', alpha: Math.min(1, e.flash * 4) * 0.75 });
+  if (e.flash > 0) tints.push({ color: B.hitFlash, alpha: Math.min(1, e.flash * 4) * 0.75 });
   drawBeast(ctx, e.kind, cx, baseY, SPRITE_PX, { t: t + e.id, facing: e.facing, moving: e.path.length > 0, action, tints });
 
   const top = baseY - 16 * PX;
   if (e.held > 0) {
-    ctx.fillStyle = '#c9d3e8';
+    ctx.fillStyle = B.held;
     ctx.fillRect(cx - 5 * PX, baseY - 2 * PX, 10 * PX, PX);
     ctx.fillRect(cx - 5 * PX, baseY - 3 * PX, PX, 2 * PX);
     ctx.fillRect(cx + 4 * PX, baseY - 3 * PX, PX, 2 * PX);
   }
   if (action === 'sleep') {
     const bob = Math.round(Math.sin((t + e.id) * 2.5) * 2);
-    drawPixels(ctx, 'glyph.z', cx + 4 * PX, top + 4 * PX + bob, 1.5, { color: P.bone });
+    drawPixels(ctx, 'glyph.z', cx + 4 * PX, top + 4 * PX + bob, 1.5, { color: B.bone });
   }
   if (action === 'eat') {
-    ctx.fillStyle = P.hatcheryEgg;
+    ctx.fillStyle = B.crumb;
     const crumb = Math.floor((t * 6) % 3);
     ctx.fillRect(cx + (4 + crumb) * PX, baseY - (4 - crumb) * PX, PX, PX);
   }
@@ -120,7 +121,7 @@ function drawFigure(ctx: CanvasRenderingContext2D, p: Placed, t: number, lights:
   // Mood glyph: ! angry, ? afraid, ~ hungry, z tired (a sleeping creature already shows a z).
   if (e.mood !== 'content' && action !== 'sleep') {
     const glyph = e.mood === 'angry' ? 'glyph.angry' : e.mood === 'afraid' ? 'glyph.afraid' : e.mood === 'hungry' ? 'glyph.hungry' : 'glyph.z';
-    const color = e.mood === 'angry' ? P.hpBad : e.mood === 'hungry' ? P.gold : P.bone;
+    const color = e.mood === 'angry' ? B.mood.angry : e.mood === 'hungry' ? B.mood.hungry : B.mood.other;
     drawPixels(ctx, glyph, cx - 7 * PX, top + PX, 1.5, { color });
   }
   if (e.hp < e.maxHp) {
@@ -129,20 +130,20 @@ function drawFigure(ctx: CanvasRenderingContext2D, p: Placed, t: number, lights:
     const w = 16;
     const x = Math.round(cx - w / 2);
     const y = Math.round(top - 4);
-    ctx.fillStyle = '#07050c';
+    ctx.fillStyle = B.ink;
     ctx.fillRect(x - 1, y - 1, w + 2, 5);
-    ctx.fillStyle = P.hpBack;
+    ctx.fillStyle = B.hp.back;
     ctx.fillRect(x, y, w, 3);
     if (safe) {
       // Allegiance by hue (blue/orange read for every common colour vision), damage by length and a stripe.
-      ctx.fillStyle = hero ? '#f0a030' : '#5aa9ff';
+      ctx.fillStyle = hero ? B.hpSafe.hero : B.hpSafe.hall;
       ctx.fillRect(x, y, Math.round(w * frac), 3);
-      ctx.fillStyle = P.bone;
+      ctx.fillStyle = B.hpSafe.stripe;
       for (let i = Math.round(w * frac); i < w; i += 3) ctx.fillRect(x + i, y + 1, 1, 1);
     } else {
-      ctx.fillStyle = frac > 0.4 ? (hero ? '#e8b04a' : P.hpGood) : P.hpBad;
+      ctx.fillStyle = frac > 0.4 ? (hero ? B.hp.hero : B.hp.good) : B.hp.bad;
       ctx.fillRect(x, y, Math.round(w * frac), 3);
-      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillStyle = alpha(B.hp.shine, 0.25);
       ctx.fillRect(x, y, Math.round(w * frac), 1);
     }
   }
@@ -213,9 +214,9 @@ export function drawBoard(
   for (const trap of s.traps) {
     drawEngine(ctx, trap.kind, (trap.x + 0.5) * TILE, (trap.y + 0.5) * TILE, PX, trap.built);
     if (!trap.built) {
-      ctx.fillStyle = P.hpBack;
+      ctx.fillStyle = B.hp.back;
       ctx.fillRect(trap.x * TILE + 6, trap.y * TILE + TILE - 5, 16, 3);
-      ctx.fillStyle = P.mark;
+      ctx.fillStyle = B.mark;
       ctx.fillRect(trap.x * TILE + 6, trap.y * TILE + TILE - 5, Math.round(16 * trap.progress), 3);
     }
   }
@@ -235,7 +236,7 @@ export function drawBoard(
     // The emissary's ward: a cold ring on the Gate.
     const gx = (GATE_POS.x + 0.5) * TILE;
     const gy = (GATE_POS.y + 0.5) * TILE;
-    ctx.strokeStyle = P.ward;
+    ctx.strokeStyle = B.ward;
     ctx.lineWidth = 2;
     ctx.globalAlpha = 0.6 + 0.3 * Math.sin(t * 5);
     ctx.beginPath();
@@ -252,8 +253,8 @@ export function drawBoard(
   const pulse = reduced ? 0.8 : 0.65 + 0.2 * Math.sin(t * 4);
   ctx.globalAlpha = pulse;
   for (const m of markedTiles(g)) {
-    brackets(ctx, m.x, m.y, P.mark, 3 * PX);
-    ctx.fillStyle = P.mark;
+    brackets(ctx, m.x, m.y, B.mark, 3 * PX);
+    ctx.fillStyle = B.mark;
     const cx = m.x * TILE + TILE / 2;
     const cy = m.y * TILE + TILE / 2;
     for (let k = -2; k <= 2; k++) {
@@ -262,7 +263,7 @@ export function drawBoard(
     }
   }
   ctx.globalAlpha = 1;
-  if (hover && inBounds(g, hover.x, hover.y)) brackets(ctx, hover.x, hover.y, isRock(tileAt(g, hover.x, hover.y)) ? '#ffb070' : P.bone, 4 * PX);
+  if (hover && inBounds(g, hover.x, hover.y)) brackets(ctx, hover.x, hover.y, isRock(tileAt(g, hover.x, hover.y)) ? B.markHover : B.bone, 4 * PX);
 }
 
 /** The entity under a board pixel, if any (for opening the manual). */
