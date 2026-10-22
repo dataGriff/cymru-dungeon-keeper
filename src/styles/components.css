@@ -154,9 +154,16 @@
   .btn--menu::-webkit-details-marker {
     display: none;
   }
+  /* A drawn caret: a ▾ glyph would come from whatever system font has one. */
   .btn--menu::after {
-    content: ' ▾';
-    color: var(--text-disabled);
+    content: '';
+    margin-left: var(--sp-1);
+    border: var(--sp-2) solid transparent;
+    border-top-color: var(--text-faint);
+    border-bottom-width: 0;
+  }
+  [open] > .btn--menu::after {
+    border-top-color: var(--accent);
   }
   [open] > .btn--menu {
     color: var(--accent);

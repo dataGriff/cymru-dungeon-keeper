@@ -130,7 +130,9 @@ add a face: drop the woff2 and its `OFL.txt` in `art/fonts/<family>/`, add
 it to `FACES` with metrics read from the file (`hhea` ascent, descent and
 line gap; the letter-frequency-weighted average advance), add it to a
 `type.family` stack, run `task tokens`. IM Fell English has no Latin
-Extended, so a `ŵ` in body text comes from the fallback.
+Extended, so Ŵ ŵ Ŷ ŷ come from a four-glyph subset of EB Garamond (OFL,
+`art/fonts/eb-garamond`) declared with a `unicode-range`; no glyph on the
+page comes from a system font, which keeps screenshots the same everywhere.
 
 ## Pixel art
 
@@ -177,7 +179,10 @@ Draw on the board at multiples of `PX`. A fractional scale (1.5) blurs.
 2. `task check` for tokens, contrast, fonts and art.
 3. `task visual` compares screenshots of the built game in its `?still`
    mode (seed 1, the sim run to a fixed second, a fixed clock, no motion)
-   and of the style guide with `tests/visual/__screenshots__`.
+   and of the style guide with `tests/visual/__screenshots__`. Text is
+   rasterised greyscale and unhinted (`tests/visual/fonts.conf`), so a
+   Linux laptop and CI agree; draw symbols with CSS or pixel maps rather
+   than glyphs a system font would have to supply.
 4. If the change is meant, `task visual:update` and commit the new
    baselines with it, so the review shows the before and after.
 

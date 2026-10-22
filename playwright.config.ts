@@ -4,6 +4,7 @@
  * tests/visual/__screenshots__. After a deliberate visual change, run
  * `task visual:update` and commit the new baselines with the change.
  */
+import { resolve } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 4174;
@@ -22,6 +23,11 @@ export default defineConfig({
     deviceScaleFactor: 1,
     colorScheme: 'dark',
     contextOptions: { reducedMotion: 'reduce' },
+    launchOptions: {
+      // The same text rasterisation on every machine: greyscale, unhinted (tests/visual/fonts.conf).
+      env: { ...process.env, FONTCONFIG_FILE: resolve('tests/visual/fonts.conf') },
+      args: ['--font-render-hinting=none', '--disable-font-subpixel-positioning', '--disable-lcd-text'],
+    },
   },
   expect: {
     // Small anti-aliasing differences between machines pass; a moved pixel of art does not.

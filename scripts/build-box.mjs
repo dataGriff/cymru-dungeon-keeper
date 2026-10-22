@@ -33,7 +33,7 @@ const FONTS = FACES.flatMap((face) =>
   face.files
     .filter((f) => !f.file.includes('-ext-'))
     .map((f) => {
-      const data = readFileSync(join(root, 'art', 'fonts', face.dir, f.file)).toString('base64');
+      const data = readFileSync(join(root, 'art', 'fonts', f.dir ?? face.dir, f.file)).toString('base64');
       return `@font-face{font-family:'${face.family}';font-style:${f.style};font-weight:400;src:url(data:font/woff2;base64,${data}) format('woff2');}`;
     }),
 ).join('');

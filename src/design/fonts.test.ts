@@ -20,9 +20,9 @@ function filesUnder(dir: string): string[] {
 describe('fonts', () => {
   it('every face file is in art/fonts, beside its OFL licence', () => {
     for (const face of FACES) {
-      const dir = join(ROOT, 'art', 'fonts', face.dir);
-      expect(readFileSync(join(dir, 'OFL.txt'), 'utf8')).toContain('SIL Open Font License, Version 1.1');
       for (const f of face.files) {
+        const dir = join(ROOT, 'art', 'fonts', f.dir ?? face.dir);
+        expect(readFileSync(join(dir, 'OFL.txt'), 'utf8')).toContain('SIL Open Font License, Version 1.1');
         const bytes = readFileSync(join(dir, f.file));
         expect(bytes.subarray(0, 4).toString('latin1'), f.file).toBe('wOF2');
       }
@@ -41,7 +41,7 @@ describe('fonts', () => {
   it('the stylesheet declares each face with font-display: swap', () => {
     const css = readFileSync(join(ROOT, 'src/styles/tokens.css'), 'utf8');
     for (const face of FACES) {
-      for (const f of face.files) expect(css).toContain(`${face.dir}/${f.file}`);
+      for (const f of face.files) expect(css).toContain(`${f.dir ?? face.dir}/${f.file}`);
       expect(css).toContain(`font-family: '${face.family} Fallback'`);
     }
     const faces = css.match(/@font-face \{[^}]*\}/g) ?? [];

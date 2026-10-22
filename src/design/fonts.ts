@@ -24,6 +24,8 @@ export interface Metrics {
 export interface FontFile {
   file: string;
   style: 'normal' | 'italic';
+  /** Directory under art/fonts, when not the face's own (a borrowed glyph). */
+  dir?: string;
   /** Omitted for a file that covers everything the face has. */
   range?: string;
 }
@@ -44,6 +46,9 @@ const LATIN =
 const LATIN_EXT =
   'U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF';
 
+/** The circumflexed w and y. */
+const WELSH = 'U+0174-0177';
+
 const GEORGIA: Metrics = { unitsPerEm: 2048, ascent: 1878, descent: -449, lineGap: 0, avgWidth: 913 };
 const COURIER_NEW: Metrics = { unitsPerEm: 2048, ascent: 1705, descent: -615, lineGap: 0, avgWidth: 1229 };
 
@@ -59,12 +64,15 @@ export const FACES: Face[] = [
     fallback: { local: ['Georgia', 'Palatino Linotype'], metrics: GEORGIA },
   },
   {
-    // IM Fell English has no Latin Extended: a ŵ comes from the fallback.
+    // IM Fell English has no Latin Extended, so Welsh's Ŵ ŵ Ŷ ŷ come from a
+    // four-glyph subset of EB Garamond (OFL), never from a system font.
     family: 'IM Fell English',
     dir: 'im-fell-english',
     files: [
       { file: 'im-fell-english-latin-400-normal.woff2', style: 'normal' },
       { file: 'im-fell-english-latin-400-italic.woff2', style: 'italic' },
+      { file: 'eb-garamond-welsh-400-normal.woff2', style: 'normal', dir: 'eb-garamond', range: WELSH },
+      { file: 'eb-garamond-welsh-400-italic.woff2', style: 'italic', dir: 'eb-garamond', range: WELSH },
     ],
     metrics: { unitsPerEm: 2048, ascent: 1854, descent: -744, lineGap: 0, avgWidth: 831.9 },
     fallback: { local: ['Georgia', 'Palatino Linotype'], metrics: GEORGIA },
@@ -108,7 +116,7 @@ export function fontFaceCss(base: string): string {
           `  font-style: ${f.style};`,
           '  font-weight: 400;',
           '  font-display: swap;',
-          `  src: url('${base}/${face.dir}/${f.file}') format('woff2');`,
+          `  src: url('${base}/${f.dir ?? face.dir}/${f.file}') format('woff2');`,
           ...(f.range ? [`  unicode-range: ${f.range};`] : []),
           '}',
         ].join('\n'),
