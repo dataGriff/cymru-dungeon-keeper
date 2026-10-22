@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   check:
-    name: task check (lint + test + build)
+    name: task check (lint + test + build) and visual tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +22,19 @@ jobs:
         run: npm ci
       - name: Lint, test, build
         run: task check
+      - name: Install Chromium for the visual tests
+        run: npx playwright install --with-deps chromium
+      - name: Visual regression (the game in ?still mode and the style guide)
+        run: npx playwright test
+      - name: Upload the visual diff report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
       - name: Upload build
         uses: actions/upload-artifact@v4
         with:

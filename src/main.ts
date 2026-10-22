@@ -115,6 +115,11 @@ function main(): void {
   const tooltip = createTooltip();
   const audio = createCaveAudio();
   const settings: Settings = loadSettings();
+  // ?still=<seconds> is for visual tests: seed 1, the sim run that far at once, then held on a
+  // fixed clock with no motion, so every screenshot of the page is the same.
+  const stillParam = new URLSearchParams(location.search).get('still');
+  const still = stillParam === null ? null : Math.max(0, Number(stillParam) || 0);
+  if (still !== null) settings.reducedMotion = true;
   applySettings(settings);
   const profiler = createProfiler();
   const applyToView = (): void => {
@@ -144,7 +149,12 @@ function main(): void {
   };
   /** Start a level (a fresh seed), carrying the bestiary pages over. */
   const startLevel = (level: Level, pages = state.pages, seed?: number): void => {
-    state = createGame(seed, pages, level);
+    state = createGame(still === null ? seed : 1, pages, level);
+    if (still !== null) {
+      // Run the hall to the requested moment at once, then hold it there.
+      for (let i = 0; i < Math.round(still / TICK); i++) advance(state, clock, TICK, 1);
+      takeEvents(state);
+    }
     fitBoardTo(state.grid.w, state.grid.h);
     clock.acc = 0;
     selectedId = null;
@@ -596,7 +606,7 @@ function main(): void {
       requestAnimationFrame(frame);
       return;
     }
-    const alpha = paused || !started ? Math.min(1, clock.acc / TICK) : advance(state, clock, elapsed, speed);
+    const alpha = paused || !started || still !== null ? Math.min(1, clock.acc / TICK) : advance(state, clock, elapsed, speed);
     profiler.mark('sim', performance.now() - f0);
     const events = takeEvents(state);
     boardReact(view, state, events);
@@ -605,7 +615,7 @@ function main(): void {
       for (const e of state.entities) if (isHero(e)) best = Math.min(best, Math.hypot(e.x - x, e.y - y));
       return best;
     });
-    const t = now / 1000;
+    const t = still === null ? now / 1000 : 0;
     if (selectedId !== null && !state.entities.some((e) => e.id === selectedId)) selectedId = null;
     drawBoard(view, state, t, hover, alpha, selectedId);
     profiler.mark('tiles', view.timings.tiles);

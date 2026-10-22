@@ -12,3 +12,5 @@ src-tauri/gen/schemas/
 release/
 docs/box/box.html
 docs/box/front-web.html
+test-results/
+playwright-report/

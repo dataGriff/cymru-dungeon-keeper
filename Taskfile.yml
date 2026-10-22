@@ -27,11 +27,23 @@ tasks:
     cmds:
       - npm run test
 
+  visual:
+    desc: Screenshot the built game (?still) and the style guide, and compare with tests/visual baselines
+    deps: [build]
+    cmds:
+      - npx playwright test
+
+  visual:update:
+    desc: Accept the current look as the new visual baselines (commit them with the change)
+    deps: [build]
+    cmds:
+      - npx playwright test --update-snapshots
+
   tokens:
     desc: Regenerate src/styles/tokens.css from src/design/tokens.ts
     cmds:
       - npm run tokens
-    sources: [src/design/tokens.ts, src/design/themes.ts, src/design/css.ts]
+    sources: [src/design/tokens.ts, src/design/themes.ts, src/design/css.ts, src/design/fonts.ts]
     generates: [src/styles/tokens.css]
 
   sprites:
