@@ -8,6 +8,7 @@
 import { openEdges, sameRoom } from '../sim/autotile';
 import { type Grid, Tile, inBounds, isRock, isRoom, isWalkable, tileAt } from '../sim/grid';
 import { PALETTE as P } from './palette';
+import { type PixelName, drawPixels, mapSize, pixelMap } from './pixels';
 
 export const TILE = 28;
 /** Logical pixels per tile side. */
@@ -199,8 +200,9 @@ function put(out: TileGrid, lx: number, ly: number, c: string): void {
   if (lx >= 0 && ly >= 0 && lx < LP && ly < LP) (out[ly] as Px[])[lx] = c;
 }
 
-/** Stamp a small pixel map (rows of palette keys) onto a tile grid. */
-function stamp(out: TileGrid, rows: readonly string[], pal: Readonly<Record<string, string>>, ox: number, oy: number): void {
+/** Stamp a named pixel map onto a tile grid. */
+function stamp(out: TileGrid, name: PixelName, ox: number, oy: number): void {
+  const { rows, palette: pal } = pixelMap(name);
   rows.forEach((row, j) => {
     for (let i = 0; i < row.length; i++) {
       const ch = row[i] as string;
@@ -234,9 +236,6 @@ function lairGrid(g: Grid, x: number, y: number): TileGrid {
   return out;
 }
 
-const EGG = ['.EE.', 'EEEE', 'EEsE', 'eEEe', '.ee.'];
-const EGG_PAL = { E: '#ece2c4', s: '#8f8464', e: '#b8a986' };
-
 function hatcheryGrid(g: Grid, x: number, y: number): TileGrid {
   const out = floorGrid(g, x, y, (X, Y) => {
     const h = hash2(X, Y, 61);
@@ -249,7 +248,7 @@ function hatcheryGrid(g: Grid, x: number, y: number): TileGrid {
     const ex = 1 + Math.floor(hash2(x, y, 64 + i) * 9);
     const ey = 2 + Math.floor(hash2(x, y, 70 + i) * 7);
     for (let k = 0; k < 4; k++) put(out, ex + k, ey + 5, '#16140e');
-    stamp(out, EGG, EGG_PAL, ex, ey);
+    stamp(out, 'tile.egg', ex, ey);
   }
   roomEdges(out, g, x, y, '#5a6a3a', '#12100a');
   return out;
@@ -305,39 +304,9 @@ function poolGrid(g: Grid, x: number, y: number): TileGrid {
 
 // ---------- landmarks ----------
 
-const DAIS = [
-  '....oooooo....',
-  '..ooSSSSSSoo..',
-  '.oSSsssssSSSo.',
-  '.oSsskkkksSSo.',
-  'oSSskkkkkksSSo',
-  'oSskkkkkkkksSo',
-  'oSskkkkkkkksSo',
-  'oSskkkkkkkksSo',
-  'oSskkkkkkkksSo',
-  'oSSskkkkkksSSo',
-  '.oSsskkkksSSo.',
-  '.oSSsssssSSSo.',
-  '..ooSSSSSSoo..',
-  '....oooooo....',
-];
-const DAIS_PAL = { o: '#1a1420', S: '#4a3e54', s: '#3a3044', k: '#241c2c' };
-
 function heartGrid(g: Grid, x: number, y: number): TileGrid {
   const out = floorGrid(g, x, y);
-  stamp(out, DAIS, DAIS_PAL, 0, 0);
-  // Knot-dots in the dais rim.
-  for (const [lx, ly] of [
-    [6, 1],
-    [7, 1],
-    [1, 6],
-    [1, 7],
-    [12, 6],
-    [12, 7],
-    [6, 12],
-    [7, 12],
-  ] as const)
-    put(out, lx, ly, '#6a5a74');
+  stamp(out, 'tile.dais', 0, 0);
   return out;
 }
 
@@ -491,8 +460,6 @@ export function drawAnimatedTile(ctx: CanvasRenderingContext2D, g: Grid, x: numb
 
 // ---------- emissive, drawn every frame over the lighting ----------
 
-const HEART_GEM = ['..rr.rr..', '.rRRrRRr.', 'rRWRRRRRr', 'rRRRRRRRr', '.rRRRRRr.', '..rRRRr..', '...rRr...', '....r....'];
-
 /** Over-light: things that glow by their own light. Returns nothing; draws in place. */
 export function drawEmissiveTile(ctx: CanvasRenderingContext2D, g: Grid, x: number, y: number, t: number, reduced: boolean, heartHp: number): void {
   const px = x * TILE;
@@ -509,17 +476,10 @@ export function drawEmissiveTile(ctx: CanvasRenderingContext2D, g: Grid, x: numb
     ctx.fillStyle = glow;
     ctx.fillRect(px - 8, py - 8, TILE + 16, TILE + 16);
     ctx.globalCompositeOperation = 'source-over';
-    const pal = { r: '#7a0f1a', R: pulse > 0.6 ? '#ff3a44' : '#d8202c', W: '#ffd0d0' };
-    const ox = px + (TILE - 9 * PX) / 2;
-    const oy = py + (TILE - 8 * PX) / 2 - (pulse > 0.75 ? 1 : 0);
-    HEART_GEM.forEach((row, j) => {
-      for (let i = 0; i < row.length; i++) {
-        const ch = row[i] as string;
-        if (ch === '.') continue;
-        ctx.fillStyle = pal[ch as 'r' | 'R' | 'W'];
-        ctx.fillRect(ox + i * PX, oy + j * PX, PX, PX);
-      }
-    });
+    const { w, h } = mapSize('gem.heart');
+    const ox = px + (TILE - w * PX) / 2;
+    const oy = py + (TILE - h * PX) / 2 - (pulse > 0.75 ? 1 : 0);
+    drawPixels(ctx, 'gem.heart', ox, oy, PX, pulse > 0.6 ? { variant: 'lit' } : {});
   } else if (tile === Tile.Portal) {
     // Three arms of violet motes winding into the dark.
     ctx.globalCompositeOperation = 'lighter';

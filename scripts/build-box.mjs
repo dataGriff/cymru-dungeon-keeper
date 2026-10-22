@@ -13,6 +13,7 @@ import { writeFileSync, mkdirSync, existsSync, copyFileSync, rmSync } from 'node
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { figureRuns, loadFigures } from './lib/figures.mjs';
+import { paletteOf, pixelMap } from './lib/pixels.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -109,8 +110,8 @@ function flagstones(u, top) {
   return out.join('');
 }
 
-const HEART_GEM = ['..rr.rr..', '.rRRrRRr.', 'rRWRRRRRr', 'rRRRRRRRr', '.rRRRRRr.', '..rRRRr..', '...rRr...', '....r....'];
-const DAIS = ['....oooooo....', '..ooSSSSSSoo..', '.oSSsssssSSSo.', 'oSSsssssssSSSo', 'oSssssssssssSo', '.oooooooooooo.'];
+/** A named map from art/pixels.json as SVG rects. */
+const art = (name, x0, y0, px, opts) => pixels(pixelMap(name).rows, paletteOf(name, opts), x0, y0, px);
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const publisher = (x, y, size) => `
@@ -169,8 +170,8 @@ function front() {
   <rect x="0" y="${floorTop}" width="${W}" height="${H - floorTop}" fill="url(#mist)"/>
   <!-- the Heart on its dais, and the light it throws -->
   <ellipse cx="${heartX}" cy="${heartY}" rx="${DPI * 2.6}" ry="${DPI * 1.6}" fill="url(#heartglow)"/>
-  ${pixels(DAIS, { o: '#1a1420', S: '#4a3e54', s: '#3a3044' }, heartX - 7 * u * 1.6, heartY + u * 2, u * 1.6)}
-  ${pixels(HEART_GEM, { r: '#7a0f1a', R: '#ff3a44', W: '#ffd0d0' }, heartX - 4.5 * u * 1.6, heartY - u * 9, u * 1.6)}
+  ${art('tile.dais', heartX - 7 * u * 1.6, heartY - u * 3.5, u * 1.6)}
+  ${art('gem.heart', heartX - 4.5 * u * 1.6, heartY - u * 7.5, u * 1.6, { variant: 'lit' })}
   <!-- the stair, and the mortals on it, torch-lit -->
   <ellipse cx="${W * 0.8}" cy="${floorTop - u * 6}" rx="${DPI * 1.1}" ry="${DPI * 0.8}" fill="url(#torch)"/>
   ${figure('knight', W * 0.8, floorTop + u * 1, u * 1.6, true)}
@@ -179,7 +180,7 @@ function front() {
   <!-- the cave closes in -->
   ${caveArch(u)}
   <!-- two lamp-yellow eyes in the dark, upper left -->
-  ${pixels(['y.y'], { y: '#ffe34a' }, W * 0.12, H * 0.42, u * 0.9)}
+  ${art('eyes.pwca', W * 0.12, H * 0.42, u * 0.9)}
   ${specks}
   <!-- the pack: one hound close and huge, two behind -->
   ${figure('cwn', W * 0.13, H * 0.745, u * 1.2, false, 0.75)}

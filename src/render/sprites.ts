@@ -11,6 +11,7 @@
  */
 import type { BeastKind, EngineKind } from '../data/bestiary';
 import { FIGURES, figureRuns } from './figures';
+import { drawPixelMap, drawPixels, mapSize } from './pixels';
 
 export interface BeastTint {
   color: string;
@@ -171,97 +172,13 @@ export function drawBeast(
   });
 }
 
-/** A pixel map (rows of palette keys, '.' transparent) drawn at `px` per pixel from its top-left. */
-export function drawPixelMap(
-  ctx: CanvasRenderingContext2D,
-  rows: readonly string[],
-  palette: Readonly<Record<string, string>>,
-  x0: number,
-  y0: number,
-  px: number,
-): void {
-  rows.forEach((row, y) => {
-    let x = 0;
-    while (x < row.length) {
-      const ch = row[x] ?? '.';
-      if (ch === '.') {
-        x++;
-        continue;
-      }
-      let end = x + 1;
-      while (end < row.length && row[end] === ch) end++;
-      ctx.fillStyle = palette[ch] ?? '#ff00ff';
-      ctx.fillRect(Math.round(x0 + x * px), Math.round(y0 + y * px), (end - x) * px, px);
-      x = end;
-    }
-  });
-}
-
-/** Engines of the Hall: 14x14 pixel maps, one tile at 2px. */
-export const ENGINE_ART: Record<EngineKind, { rows: string[]; palette: Record<string, string> }> = {
-  pit: {
-    palette: { e: '#2a2018', E: '#5a4630', k: '#07050c', L: '#8a6a42', l: '#5e4428' },
-    rows: [
-      '..............',
-      '...eeeeeeee...',
-      '..eEEEEEEEEe..',
-      '.eEkkkkkkkkEe.',
-      '.eELLLLLLLLEe.',
-      '.eEklkklkkkEe.',
-      '.eEkLkkkLkkEe.',
-      '.eELLLLLLLLEe.',
-      '.eEkkLkklkkEe.',
-      '.eEkklkkLkkEe.',
-      '.eELLLLLLLLEe.',
-      '..eEEEEEEEEe..',
-      '...eeeeeeee...',
-      '..............',
-    ],
-  },
-  boulder: {
-    palette: { o: '#26222c', O: '#6b6570', H: '#a49eaa', s: '#47424f', w: '#7a5230', W: '#9a7044' },
-    rows: [
-      '..............',
-      '.....oooo.....',
-      '...ooOOOOoo...',
-      '..oOHHOOOOOo..',
-      '..oHHOOOOOOo..',
-      '.oOHOOOOOOOOo.',
-      '.oOOOOOOOOOso.',
-      '.oOOOOOOOOsso.',
-      '.oOOOOOOOssso.',
-      '..oOOOOOssso..',
-      '..ossOsssss...',
-      '...oossssoo...',
-      '...wWWWWWw....',
-      '..............',
-    ],
-  },
-  snare: {
-    palette: { I: '#9ea4ad', i: '#6b7079', v: '#e8edf3', p: '#565b64', c: '#7a808a' },
-    rows: [
-      '..............',
-      '..IIIIIIIIII..',
-      '.IvivivivivI..',
-      '.I.........I..',
-      '.I...pppp..I..',
-      '.IiiippppiiI..',
-      '.I...pppp..I..',
-      '.I.........I..',
-      '.IvivivivivI..',
-      '..IIIIIIIIII..',
-      '.......c......',
-      '......c.c.....',
-      '.......c......',
-      '..............',
-    ],
-  },
-};
-
 /** Draw an engine centred at (cx, cy); an unbuilt one is a ghost of itself. */
 export function drawEngine(ctx: CanvasRenderingContext2D, kind: EngineKind, cx: number, cy: number, px: number, built = true): void {
-  const art = ENGINE_ART[kind];
+  const name = `engine.${kind}` as const;
+  const { w, h } = mapSize(name);
   ctx.globalAlpha = built ? 1 : 0.5;
-  drawPixelMap(ctx, art.rows, art.palette, cx - 7 * px, cy - 7 * px, px);
+  drawPixels(ctx, name, cx - (w / 2) * px, cy - (h / 2) * px, px);
   ctx.globalAlpha = 1;
 }
+
+export { drawPixelMap };

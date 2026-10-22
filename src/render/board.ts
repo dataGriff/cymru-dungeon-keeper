@@ -5,7 +5,8 @@ import { GATE_POS, type Vec, inBounds, isRock, markedTiles, tileAt } from '../si
 import { type Light, type LightingOptions, collectLights, createLightMap, drawLighting, lightAt } from './lighting';
 import { PALETTE as P } from './palette';
 import { Particles } from './particles';
-import { type BeastTint, drawBeast, drawEngine, drawPixelMap } from './sprites';
+import { drawPixels } from './pixels';
+import { type BeastTint, drawBeast, drawEngine } from './sprites';
 import { TileLayer, createTileLayer, syncTileLayer } from './tilelayer';
 import { PX, TILE, drawAnimatedTile, drawEmissiveTile, drawRubble, isAnimated } from './tiles';
 
@@ -106,7 +107,7 @@ function drawFigure(ctx: CanvasRenderingContext2D, p: Placed, t: number, lights:
   }
   if (action === 'sleep') {
     const bob = Math.round(Math.sin((t + e.id) * 2.5) * 2);
-    drawPixelMap(ctx, ['zzz', '..z', '.z.', 'z..', 'zzz'], { z: P.bone }, cx + 4 * PX, top + 4 * PX + bob, 1.5);
+    drawPixels(ctx, 'glyph.z', cx + 4 * PX, top + 4 * PX + bob, 1.5, { color: P.bone });
   }
   if (action === 'eat') {
     ctx.fillStyle = P.hatcheryEgg;
@@ -114,20 +115,13 @@ function drawFigure(ctx: CanvasRenderingContext2D, p: Placed, t: number, lights:
     ctx.fillRect(cx + (4 + crumb) * PX, baseY - (4 - crumb) * PX, PX, PX);
   }
   if (e.carrying > 0) {
-    drawPixelMap(ctx, ['.yy.', 'yYYy', 'dyyd'], { y: P.gold, Y: '#ffe08a', d: P.goldDark }, cx - 2 * PX, top - PX, PX);
+    drawPixels(ctx, 'coin.carry', cx - 2 * PX, top - PX, PX);
   }
   // Mood glyph: ! angry, ? afraid, ~ hungry, z tired (a sleeping creature already shows a z).
   if (e.mood !== 'content' && action !== 'sleep') {
-    const glyph =
-      e.mood === 'angry'
-        ? ['.r.', '.r.', '.r.', '...', '.r.']
-        : e.mood === 'afraid'
-          ? ['rr.', '..r', '.r.', '...', '.r.']
-          : e.mood === 'hungry'
-            ? ['...', 'r.r', '.r.', '...', '...']
-            : ['rrr', '..r', '.r.', 'r..', 'rrr'];
-    const color = e.mood === 'angry' ? '#ff4a4a' : e.mood === 'hungry' ? P.gold : P.bone;
-    drawPixelMap(ctx, glyph, { r: color }, cx - 7 * PX, top + PX, 1.5);
+    const glyph = e.mood === 'angry' ? 'glyph.angry' : e.mood === 'afraid' ? 'glyph.afraid' : e.mood === 'hungry' ? 'glyph.hungry' : 'glyph.z';
+    const color = e.mood === 'angry' ? P.hpBad : e.mood === 'hungry' ? P.gold : P.bone;
+    drawPixels(ctx, glyph, cx - 7 * PX, top + PX, 1.5, { color });
   }
   if (e.hp < e.maxHp) {
     const frac = Math.max(0, e.hp / e.maxHp);
@@ -154,11 +148,9 @@ function drawFigure(ctx: CanvasRenderingContext2D, p: Placed, t: number, lights:
   }
 }
 
-const PILE = ['..yY..', '.yYyy.', 'yyyYyd', 'dddddd'];
-
 function drawDrop(ctx: CanvasRenderingContext2D, x: number, y: number, gold: number): void {
   const n = gold >= 40 ? 2 : 1;
-  for (let i = 0; i < n; i++) drawPixelMap(ctx, PILE, { y: P.gold, Y: '#ffe08a', d: P.goldDark }, x * TILE + (3 + i * 5) * PX, y * TILE + (7 + i) * PX, PX);
+  for (let i = 0; i < n; i++) drawPixels(ctx, 'pile.gold', x * TILE + (3 + i * 5) * PX, y * TILE + (7 + i) * PX, PX);
 }
 
 /** Corner brackets: the marked-for-digging pattern, the hover cursor. */
