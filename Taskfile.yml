@@ -44,7 +44,7 @@ tasks:
   box:
     desc: Render the box front, back, spine, 3D mock (docs/box) and public/box-front.svg
     cmds:
-      - node scripts/build-box.mjs
+      - npm run box
 
   manual:
     desc: Build dist/manual.pdf and dist/reference-card.pdf from the game data

@@ -4,6 +4,7 @@
  * stylesheet can never drift from src/design/tokens.ts.
  */
 import { rgbOf } from './color.ts';
+import { fontFaceCss } from './fonts.ts';
 import { motion, shadow, size, space, type, ui, z } from './tokens.ts';
 import { THEMES, type Theme } from './themes.ts';
 
@@ -41,7 +42,7 @@ function themeBlock(name: string, theme: Theme): string {
 }
 
 export function tokensCss(): string {
-  const header = `/* Generated from src/design/tokens.ts and src/design/themes.ts by \`task tokens\`. Do not edit by hand. */\n\n`;
+  const header = `/* Generated from src/design/tokens.ts, themes.ts and fonts.ts by \`task tokens\`. Do not edit by hand. */\n\n`;
   const layers = `@layer tokens, base, layout, components, screens, utilities;\n\n`;
   const root = `@layer tokens {\n:root {\n  color-scheme: dark;\n${baseVars()
     .map((l) => `  ${l}`)
@@ -49,5 +50,6 @@ export function tokensCss(): string {
     .map(([n, t]) => themeBlock(n, t))
     .filter(Boolean)
     .join('\n')}}\n`;
-  return header + layers + root;
+  const fonts = `${fontFaceCss('../../art/fonts')}\n\n`;
+  return header + layers + fonts + root;
 }

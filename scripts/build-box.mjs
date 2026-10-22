@@ -5,15 +5,16 @@
  * Playwright (local dev; CI skips the raster step). A 3D mock of the box is
  * composed from the same faces for the store page.
  *
- *   node scripts/build-box.mjs            # or: task box
+ *   node --experimental-strip-types scripts/build-box.mjs   # or: task box
  *
  * The front art is also copied to public/box-front.svg for the title screen.
  */
-import { writeFileSync, mkdirSync, existsSync, copyFileSync, rmSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, copyFileSync, rmSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { figureRuns, loadFigures } from './lib/figures.mjs';
 import { paletteOf, pixelMap } from './lib/pixels.mjs';
+import { FACES } from '../src/design/fonts.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -27,7 +28,15 @@ const W = 7.5 * DPI;
 const H = 9.5 * DPI;
 const SPINE = 1.5 * DPI;
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&amp;family=Metamorphous&amp;family=VT323&amp;display=swap');`;
+// The faces from art/fonts, embedded (Latin only) so each SVG renders the same anywhere, offline.
+const FONTS = FACES.flatMap((face) =>
+  face.files
+    .filter((f) => !f.file.includes('-ext-'))
+    .map((f) => {
+      const data = readFileSync(join(root, 'art', 'fonts', face.dir, f.file)).toString('base64');
+      return `@font-face{font-family:'${face.family}';font-style:${f.style};font-weight:400;src:url(data:font/woff2;base64,${data}) format('woff2');}`;
+    }),
+).join('');
 const display = "'Metamorphous', 'Palatino Linotype', Georgia, serif";
 const body = "'IM Fell English', 'Palatino Linotype', Georgia, serif";
 const mono = "'VT323', 'Courier New', monospace";
