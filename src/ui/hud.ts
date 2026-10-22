@@ -1,4 +1,5 @@
 import { BESTIARY } from '../data/bestiary';
+import { crispSize } from '../render/scale';
 import { drawBeast } from '../render/sprites';
 import { isCreature } from '../sim/entities';
 import { type GameState, finalWave, heroCount, looseGold, nextWave, treasuryCapacity, vaultGold } from '../sim/game';
@@ -53,6 +54,7 @@ export function createHud(): Hud {
       const c = el('canvas', { className: 'hud-icon', title: BESTIARY[kind].name });
       c.width = 32;
       c.height = 32;
+      c.style.width = c.style.height = `${crispSize(32, 2, 32, window.devicePixelRatio || 1)}px`;
       const ctx = c.getContext('2d');
       if (ctx) {
         ctx.imageSmoothingEnabled = false;

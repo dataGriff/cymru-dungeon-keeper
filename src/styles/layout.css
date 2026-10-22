@@ -15,6 +15,12 @@
       grid-template-columns: minmax(0, 1fr);
     }
   }
+  /* On a phone, give the board the room for one device pixel per art pixel (336 + frame). */
+  @media (max-width: 400px) {
+    .layout {
+      padding-inline: var(--sp-4);
+    }
+  }
 
   .toolbar,
   .log,
@@ -53,7 +59,8 @@
   /* ---------- the board's frame ---------- */
   .board-wrap {
     position: relative;
-    width: 100%;
+    /* Hugs the canvas, which main.ts sizes to whole device pixels per art pixel. */
+    width: fit-content;
     padding: var(--sp-3);
     /* Integer scaling: the board may overflow its column and scroll sideways. */
     overflow-x: auto;
@@ -86,10 +93,15 @@
     right: -3px;
     bottom: -3px;
   }
+  @media (max-width: 400px) {
+    .board-wrap {
+      padding: var(--sp-1);
+    }
+  }
 
   canvas.board {
     display: block;
-    width: 100%;
+    max-width: none;
     height: auto;
     image-rendering: pixelated;
     image-rendering: crisp-edges;

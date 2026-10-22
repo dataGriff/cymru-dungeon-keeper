@@ -108,7 +108,7 @@ function drawFigure(ctx: CanvasRenderingContext2D, p: Placed, t: number, lights:
   }
   if (action === 'sleep') {
     const bob = Math.round(Math.sin((t + e.id) * 2.5) * 2);
-    drawPixels(ctx, 'glyph.z', cx + 4 * PX, top + 4 * PX + bob, 1.5, { color: B.bone });
+    drawPixels(ctx, 'glyph.z', cx + 4 * PX, top + 3 * PX + bob, PX, { color: B.bone });
   }
   if (action === 'eat') {
     ctx.fillStyle = B.crumb;
@@ -122,7 +122,7 @@ function drawFigure(ctx: CanvasRenderingContext2D, p: Placed, t: number, lights:
   if (e.mood !== 'content' && action !== 'sleep') {
     const glyph = e.mood === 'angry' ? 'glyph.angry' : e.mood === 'afraid' ? 'glyph.afraid' : e.mood === 'hungry' ? 'glyph.hungry' : 'glyph.z';
     const color = e.mood === 'angry' ? B.mood.angry : e.mood === 'hungry' ? B.mood.hungry : B.mood.other;
-    drawPixels(ctx, glyph, cx - 7 * PX, top + PX, 1.5, { color });
+    drawPixels(ctx, glyph, cx - 7 * PX, top, PX, { color });
   }
   if (e.hp < e.maxHp) {
     const frac = Math.max(0, e.hp / e.maxHp);

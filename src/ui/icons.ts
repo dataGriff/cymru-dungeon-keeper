@@ -4,6 +4,7 @@
  * with the board); this module only puts a map on a crisp little canvas.
  */
 import { type PixelName, drawPixels, mapSize } from '../render/pixels';
+import { crispSize } from '../render/scale';
 
 export type IconName =
   | 'hand'
@@ -33,8 +34,8 @@ export function iconMap(name: IconName): PixelName {
   return `icon.${name}`;
 }
 
-/** A crisp little canvas showing the icon at an integer scale. */
-export function iconCanvas(name: IconName, scale = 2, label = ''): HTMLCanvasElement {
+/** A crisp little canvas showing the icon at a whole-number scale. */
+export function iconCanvas(name: IconName, scale: 1 | 2 | 3 | 4 = 2, label = ''): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.className = 'pixel-icon';
   if (label) c.setAttribute('aria-label', label);
@@ -44,13 +45,14 @@ export function iconCanvas(name: IconName, scale = 2, label = ''): HTMLCanvasEle
 }
 
 /** Repaint an existing icon canvas with a different icon (e.g. pause and play). */
-export function setIcon(c: HTMLCanvasElement, name: IconName, scale = 2): void {
+export function setIcon(c: HTMLCanvasElement, name: IconName, scale: 1 | 2 | 3 | 4 = 2): void {
   const map = iconMap(name);
   const { w, h } = mapSize(map);
   c.width = Math.ceil(w * scale);
   c.height = Math.ceil(h * scale);
-  c.style.width = `${c.width}px`;
-  c.style.height = `${c.height}px`;
+  const dpr = window.devicePixelRatio || 1;
+  c.style.width = `${crispSize(c.width, scale, c.width, dpr)}px`;
+  c.style.height = `${crispSize(c.height, scale, c.height, dpr)}px`;
   const ctx = c.getContext('2d');
   if (!ctx) return;
   ctx.clearRect(0, 0, c.width, c.height);

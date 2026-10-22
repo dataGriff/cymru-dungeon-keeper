@@ -103,7 +103,7 @@ export function createToolbar(h: ToolbarHandlers): Toolbar {
       const key = TOOL_KEYS[tool].toUpperCase();
       const b = el('button', { className: 'btn btn--tool', title: `${label}${cost ? ` (${cost} gold)` : ''}. ${hint} Key ${key}.` });
       // The visible contents are the accessible name ("Lair 15 gold"); the hint is the description.
-      b.append(iconCanvas(icon, icon === 'pit' || icon === 'boulder' || icon === 'snare' ? 1.5 : 2));
+      b.append(iconCanvas(icon, 2));
       b.append(el('span', { className: 'tool-label', text: label }));
       if (cost) b.append(el('span', { className: 'tool-cost' }, [`${cost}`, el('span', { className: 'sr-only', text: ' gold' })]));
       const kbd = el('kbd', { className: 'tool-key', text: key });

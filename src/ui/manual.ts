@@ -11,6 +11,7 @@ import {
   TRADES,
   type TradeKind,
 } from '../data/bestiary';
+import { crispSize } from '../render/scale';
 import { drawBeast, drawEngine } from '../render/sprites';
 import type { Pages } from '../sim/game';
 import { el } from './dom';
@@ -69,6 +70,7 @@ export function createManual(h: ManualHandlers): Manual {
   const portrait = el('canvas', { className: 'manual-portrait' });
   portrait.width = PORTRAIT;
   portrait.height = PORTRAIT;
+  portrait.style.width = portrait.style.height = `${crispSize(PORTRAIT, PORTRAIT_PX, PORTRAIT, window.devicePixelRatio || 1)}px`;
   const pctx = portrait.getContext('2d');
   if (pctx) pctx.imageSmoothingEnabled = false;
   const name = el('h2', { className: 'manual-name' });

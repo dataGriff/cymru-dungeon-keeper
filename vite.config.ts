@@ -4,7 +4,7 @@ export default defineConfig({
   base: './',
   build: { target: 'es2022', outDir: 'dist' },
   test: {
-    include: ['src/sim/**/*.test.ts', 'src/design/**/*.test.ts'],
+    include: ['src/sim/**/*.test.ts', 'src/design/**/*.test.ts', 'src/render/scale.test.ts'],
     environment: 'node',
     coverage: {
       provider: 'v8',

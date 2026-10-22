@@ -27,6 +27,7 @@ import { fromJSON, toJSON } from './sim/save';
 import { createTooltip } from './ui/tooltip';
 import { PICKABLE, THEMES } from './design/themes';
 import { setBoardTheme } from './render/colors';
+import { fitBoard, fixedBoard } from './render/scale';
 
 /** Press-and-hold this long on touch to get the right-click action. */
 const LONG_PRESS_MS = 450;
@@ -77,13 +78,31 @@ function main(): void {
   const canvas = el('canvas', { className: 'board' });
   canvas.setAttribute('aria-label', 'The hall. Click or drag to mark rock and paint rooms; click a creature to read about it.');
   let view: BoardView = createBoardView(canvas, state.grid.w, state.grid.h);
-  const fitBoard = (w: number, h: number): void => {
+  /**
+   * Size the board so every art pixel is a whole number of device pixels:
+   * Fit takes the largest such size the column allows; a chosen scale is
+   * snapped to one. Runs on resize, zoom (a new devicePixelRatio) and a new map.
+   */
+  const sizeBoard = (): void => {
+    const dpr = window.devicePixelRatio || 1;
+    if (settings.scale > 0) {
+      canvas.style.width = `${fixedBoard(canvas.width, settings.scale, dpr).width}px`;
+      return;
+    }
+    const wrap = canvas.parentElement;
+    const column = wrap?.parentElement;
+    if (!wrap || !column || column.clientWidth === 0) return;
+    const cs = getComputedStyle(wrap);
+    const frame = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+    const available = Math.min(column.clientWidth, parseFloat(cs.maxWidth) || Infinity) - frame;
+    canvas.style.width = `${fitBoard(canvas.width, available, dpr).width}px`;
+  };
+  const fitBoardTo = (w: number, h: number): void => {
     if (canvas.width !== w * TILE || canvas.height !== h * TILE) {
       view = createBoardView(canvas, w, h);
       applyToView();
+      sizeBoard();
     }
-    canvas.style.width = settings.scale > 0 ? `${w * TILE * settings.scale}px` : '';
-    canvas.style.maxWidth = settings.scale > 0 ? 'none' : '';
   };
   const hud = createHud();
   const log = createLog(3);
@@ -126,7 +145,7 @@ function main(): void {
   /** Start a level (a fresh seed), carrying the bestiary pages over. */
   const startLevel = (level: Level, pages = state.pages, seed?: number): void => {
     state = createGame(seed, pages, level);
-    fitBoard(state.grid.w, state.grid.h);
+    fitBoardTo(state.grid.w, state.grid.h);
     clock.acc = 0;
     selectedId = null;
     paused = false;
@@ -140,7 +159,7 @@ function main(): void {
   const restart = (): void => startLevel(state.level);
   const adoptState = (next: GameState): void => {
     state = next;
-    fitBoard(state.grid.w, state.grid.h);
+    fitBoardTo(state.grid.w, state.grid.h);
     clock.acc = 0;
     selectedId = null;
     paused = false;
@@ -269,7 +288,7 @@ function main(): void {
       settings[key] = Number(sel.value) as Settings[K];
       saveSettings(settings);
       applySettings(settings);
-      fitBoard(state.grid.w, state.grid.h);
+      sizeBoard();
     });
     return el('label', { className: 'mixer-row' }, [el('span', { text: label }), sel]);
   };
@@ -322,6 +341,9 @@ function main(): void {
   const left = el('section', { className: 'play' }, [title, hud.root, boardWrap, toolbar.root, editorPanel.root, log.root, desk]);
   boardWrap.append(profiler.root);
   app.append(el('div', { className: 'layout' }, [left, manual.root]));
+  new ResizeObserver(sizeBoard).observe(left);
+  window.addEventListener('resize', sizeBoard);
+  sizeBoard();
 
   // ---------- input ----------
   let hover: Vec | null = null;
@@ -568,7 +590,7 @@ function main(): void {
     const f0 = performance.now();
     applyTheme();
     if (editing) {
-      fitBoard(editorPanel.grid.w, editorPanel.grid.h);
+      fitBoardTo(editorPanel.grid.w, editorPanel.grid.h);
       const preview = { ...state, grid: editorPanel.grid, entities: [], drops: [], traps: [], boulders: [], rubble: [], corpses: [], hunt: false };
       drawBoard(view, preview, now / 1000, hover, 1, null, false);
       requestAnimationFrame(frame);
