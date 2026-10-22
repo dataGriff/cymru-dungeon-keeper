@@ -8,15 +8,12 @@
 import type { Entity } from '../sim/entities';
 import { type Grid, Tile, tilesOf } from '../sim/grid';
 import { alpha } from '../design/color';
-import { B } from './colors';
+import { B, look } from './colors';
 import { TILE } from './tiles';
 
 /** Fraction of the light map scale: 0.5 means half resolution. */
 export const LIGHTMAP_SCALE = 0.5;
 /** The hall's own dark: low enough to hide, high enough that undug rock still reads as rock. */
-/** The ambient as a 0..1 brightness, for sampling the light at a point. */
-export const AMBIENT_LEVEL = 0.34;
-
 export interface Light {
   x: number;
   y: number;
@@ -32,8 +29,6 @@ export interface Light {
 export interface LightingOptions {
   /** Disable flicker (prefers-reduced-motion). */
   reducedMotion: boolean;
-  /** The Hunt has returned: every torch burns white and the ambient goes cold. */
-  hunt?: boolean;
 }
 
 export function collectLights(g: Grid, entities: readonly Entity[]): Light[] {
@@ -72,7 +67,7 @@ export function collectLights(g: Grid, entities: readonly Entity[]): Light[] {
  * without staining their colours the way the multiplied map stains the floor.
  */
 export function lightAt(lights: readonly Light[], x: number, y: number): number {
-  let sum = AMBIENT_LEVEL;
+  let sum = look.lightFloor;
   for (const l of lights) {
     const r = l.r * 1.2;
     const d = Math.hypot(l.x - x, l.y - y);
@@ -106,7 +101,7 @@ export function drawLighting(
   const h = g.h * TILE;
   const k = LIGHTMAP_SCALE;
   map.globalCompositeOperation = 'source-over';
-  map.fillStyle = opts.hunt ? B.light.ambientHunt : B.light.ambient;
+  map.fillStyle = B.light.ambient;
   map.fillRect(0, 0, map.canvas.width, map.canvas.height);
   map.globalCompositeOperation = 'lighter';
   for (const l of lights) {
@@ -117,7 +112,7 @@ export function drawLighting(
     const x = l.x * k;
     const y = l.y * k;
     const grad = map.createRadialGradient(x, y, 0, x, y, r);
-    const color = opts.hunt ? alpha(B.light.hunt, 0.95) : l.color;
+    const color = l.color;
     grad.addColorStop(0, color);
     grad.addColorStop(0.45, color.replace(/[\d.]+\)$/, '0.55)'));
     grad.addColorStop(1, alpha(B.shadow, 0));
@@ -132,7 +127,8 @@ export function drawLighting(
   ctx.imageSmoothingEnabled = false;
   ctx.fillStyle = alpha(B.light.wash, 0.035);
   ctx.fillRect(0, 0, w, h);
-  // A soft vignette, so the eye stays on the hall and off the frame.
+  // A soft vignette, so the eye stays on the hall and off the frame (unless the theme wants every edge lit).
+  if (!look.vignette) return;
   const v = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.72);
   v.addColorStop(0, alpha(B.light.vignette, 0));
   v.addColorStop(1, alpha(B.light.vignette, 0.45));

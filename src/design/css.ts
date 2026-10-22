@@ -5,7 +5,7 @@
  */
 import { rgbOf } from './color.ts';
 import { fontFaceCss } from './fonts.ts';
-import { motion, shadow, size, space, type, ui, z } from './tokens.ts';
+import { fade, motion, shadow, size, space, type, ui, z } from './tokens.ts';
 import { THEMES, type Theme } from './themes.ts';
 
 const kebab = (s: string): string => s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`).replace(/(\d+)/g, '-$1').replace(/--/g, '-');
@@ -32,11 +32,12 @@ export function baseVars(): string[] {
   for (const [k, n] of Object.entries(z)) v.push(`--z-${kebab(k)}: ${n};`);
   for (const [k, d] of Object.entries(motion)) v.push(`--dur-${kebab(k)}: ${d}ms;`);
   for (const [k, s] of Object.entries(shadow)) v.push(`--shadow-${kebab(k)}: ${s};`);
+  for (const [k, f] of Object.entries(fade)) v.push(`--fade-${kebab(k)}: ${f};`);
   return v;
 }
 
 function themeBlock(name: string, theme: Theme): string {
-  const vars = colourVars(theme.ui ?? {});
+  const vars = [...colourVars(theme.ui ?? {}), ...Object.entries(theme.fade ?? {}).map(([k, f]) => `--fade-${kebab(k)}: ${f};`)];
   if (vars.length === 0) return '';
   return `:root[data-theme='${name}'] {\n${vars.map((l) => `  ${l}`).join('\n')}\n}\n`;
 }

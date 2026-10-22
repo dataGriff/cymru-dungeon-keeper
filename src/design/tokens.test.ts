@@ -88,6 +88,11 @@ describe('design tokens', () => {
     expect(unused).toEqual([]);
   });
 
+  it('no component knows which theme is on: only tokens.css reads data-theme', () => {
+    const files = [...filesUnder('src/styles', '.css').filter((f) => !f.endsWith('tokens.css')), ...filesUnder('src/ui', '.ts'), ...filesUnder('src/render', '.ts')];
+    expect(files.filter((f) => /data-theme|dataset\[?'?\.?theme/.test(read(f)))).toEqual([]);
+  });
+
   it('the stylesheet declares its layers in order before anything else', () => {
     const css = read('src/styles/tokens.css');
     const first = css.split('\n').find((l) => l.startsWith('@'));

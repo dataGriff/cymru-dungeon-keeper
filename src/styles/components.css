@@ -123,7 +123,7 @@
     box-shadow: none;
   }
   .btn--tab.is-unseen {
-    color: rgb(var(--ink-soft-rgb) / 0.9);
+    color: rgb(var(--ink-soft-rgb) / var(--fade-unseen));
     border-style: dashed;
   }
   /* Ink on parchment: the emissary's trades. */
@@ -343,8 +343,8 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    /* The faded lines are text pairs in tokens.ts: keep them legible. */
-    opacity: 0.7;
+    /* Faded lines are text pairs in tokens.ts, so they stay legible. */
+    opacity: var(--fade-log);
   }
   .log-line::before {
     content: '';
@@ -356,7 +356,7 @@
     background: var(--frame-high);
   }
   .log-line:nth-child(2) {
-    opacity: 0.85;
+    opacity: var(--fade-log-recent);
   }
   .log-latest {
     color: var(--text);

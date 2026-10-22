@@ -1,5 +1,6 @@
 /**
- * Player settings that persist: motion, flicker, text size, integer scaling.
+ * Player settings that persist: motion, flicker, text size, integer scaling,
+ * the theme.
  * Applied as data attributes and CSS variables on <html>, so the stylesheet
  * and the renderer both read them.
  */
@@ -14,6 +15,8 @@ export interface Settings {
   scale: 0 | 1 | 2 | 3 | 4;
   /** Colour-blind safe health bars (blue for the hall, orange for mortals, patterned). */
   safeColours: boolean;
+  /** The look: the default hall or high contrast (see src/design/themes.ts). */
+  theme: 'hall' | 'contrast';
 }
 
 const KEY = 'annwn.settings.v1';
@@ -24,6 +27,7 @@ export const DEFAULTS: Settings = {
   textScale: 100,
   scale: 0,
   safeColours: false,
+  theme: 'hall',
 };
 
 export function loadSettings(): Settings {

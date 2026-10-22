@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { type Cvd, contrast, deltaE, mixHex, simulateCvd } from './color';
-import { THEMES, boardColor, themeBoard, themeUi } from './themes';
+import { THEMES, boardColor, themeBoard, themeFade, themeUi } from './themes';
 import { boardPairs, textPairs } from './tokens';
 
 const CVDS: Cvd[] = ['protanopia', 'deuteranopia', 'tritanopia'];
@@ -16,16 +16,17 @@ const DISTINCT = 20;
 
 describe.each(Object.keys(THEMES))('theme %s', (name) => {
   const colors = themeUi(name);
+  const fades = themeFade(name);
   const aaa = name === 'contrast';
 
   it('every text pair meets its contrast ratio', () => {
     const fails: string[] = [];
     for (const p of textPairs) {
       const bg = colors[p.bg];
-      const fg = p.opacity === undefined ? colors[p.fg] : mixHex(bg, colors[p.fg], p.opacity);
+      const fg = p.fade === undefined ? colors[p.fg] : mixHex(bg, colors[p.fg], fades[p.fade]);
       const min = aaa ? 7 : p.min;
       const ratio = contrast(fg, bg);
-      if (ratio < min) fails.push(`${p.fg} on ${p.bg}${p.opacity ? ` at ${p.opacity}` : ''}: ${ratio.toFixed(2)} < ${min} (${p.use})`);
+      if (ratio < min) fails.push(`${p.fg} on ${p.bg}${p.fade ? ` faded to ${fades[p.fade]}` : ''}: ${ratio.toFixed(2)} < ${min} (${p.use})`);
     }
     expect(fails).toEqual([]);
   });

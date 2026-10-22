@@ -4,7 +4,7 @@ import { CORPSE_SECONDS, type GameState, RUBBLE_SECONDS, type SimEvent, heartOf,
 import { GATE_POS, type Vec, inBounds, isRock, markedTiles, tileAt } from '../sim/grid';
 import { type Light, type LightingOptions, collectLights, createLightMap, drawLighting, lightAt } from './lighting';
 import { alpha } from '../design/color';
-import { B } from './colors';
+import { B, look } from './colors';
 import { Particles } from './particles';
 import { drawPixels } from './pixels';
 import { type BeastTint, drawBeast, drawEngine } from './sprites';
@@ -87,14 +87,14 @@ function drawGround(ctx: CanvasRenderingContext2D, p: Placed, selected: boolean)
 }
 
 /** Over the lighting: the figure, dimmed by the dark it stands in, then its readouts. */
-function drawFigure(ctx: CanvasRenderingContext2D, p: Placed, t: number, lights: readonly Light[] | null, hunt: boolean, safe: boolean): void {
+function drawFigure(ctx: CanvasRenderingContext2D, p: Placed, t: number, lights: readonly Light[] | null, safe: boolean): void {
   const { e, cx, baseY } = p;
   const action = actionOf(e);
   const tints: BeastTint[] = [];
   if (lights) {
     const lit = lightAt(lights, cx, baseY - 10);
     tints.push({ color: B.ink, alpha: (1 - lit) * 0.72 });
-    if (hunt) tints.push({ color: B.huntWash, alpha: 0.12 });
+    if (look.figureWash > 0) tints.push({ color: B.huntWash, alpha: look.figureWash });
   }
   if (e.flash > 0) tints.push({ color: B.hitFlash, alpha: Math.min(1, e.flash * 4) * 0.75 });
   drawBeast(ctx, e.kind, cx, baseY, SPRITE_PX, { t: t + e.id, facing: e.facing, moving: e.path.length > 0, action, tints });
@@ -226,12 +226,12 @@ export function drawBoard(
 
   const t2 = performance.now();
   const lights = lit ? collectLights(g, s.entities) : null;
-  if (lights) drawLighting(ctx, view.light, g, lights, t, { ...view.lighting, hunt: s.hunt });
+  if (lights) drawLighting(ctx, view.light, g, lights, t, view.lighting);
   view.timings.lighting = performance.now() - t2;
 
   const t3 = performance.now();
   for (const i of animated) drawEmissiveTile(ctx, g, i % g.w, Math.floor(i / g.w), t, reduced, s.heartHp);
-  for (const p of placed) drawFigure(ctx, p, t, lights, s.hunt, view.safeColours);
+  for (const p of placed) drawFigure(ctx, p, t, lights, view.safeColours);
   if (warded(s)) {
     // The emissary's ward: a cold ring on the Gate.
     const gx = (GATE_POS.x + 0.5) * TILE;

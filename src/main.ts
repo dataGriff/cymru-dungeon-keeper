@@ -25,6 +25,8 @@ import { type Settings, applySettings, loadSettings, saveSettings } from './ui/s
 import { createTitleScreen } from './ui/title';
 import { fromJSON, toJSON } from './sim/save';
 import { createTooltip } from './ui/tooltip';
+import { PICKABLE, THEMES } from './design/themes';
+import { setBoardTheme } from './render/colors';
 
 /** Press-and-hold this long on touch to get the right-click action. */
 const LONG_PRESS_MS = 450;
@@ -99,6 +101,15 @@ function main(): void {
   const applyToView = (): void => {
     view.lighting.reducedMotion = settings.reducedMotion || settings.noFlicker;
     view.safeColours = settings.safeColours;
+  };
+  // The theme: the player's pick, except that the Hunt's finale turns the default hall cold.
+  // (High contrast stays high contrast.) The page and the board change together, with no reload.
+  // ?theme=<name> forces one, for the style guide and screenshots.
+  const forcedTheme = new URLSearchParams(location.search).get('theme');
+  const applyTheme = (): void => {
+    const name = forcedTheme && forcedTheme in THEMES ? forcedTheme : state.hunt && settings.theme === 'hall' ? 'hunt' : settings.theme;
+    if (document.documentElement.dataset['theme'] !== name) document.documentElement.dataset['theme'] = name;
+    setBoardTheme(name);
   };
 
   const setPaused = (p: boolean): void => {
@@ -262,12 +273,30 @@ function main(): void {
     });
     return el('label', { className: 'mixer-row' }, [el('span', { text: label }), sel]);
   };
+  const themeSelect = (): HTMLElement => {
+    const sel = el('select');
+    for (const name of PICKABLE) {
+      const o = el('option', { text: THEMES[name].label });
+      o.value = name;
+      o.selected = settings.theme === name;
+      sel.append(o);
+    }
+    sel.setAttribute('aria-label', 'Theme');
+    sel.addEventListener('change', () => {
+      settings.theme = sel.value === 'contrast' ? 'contrast' : 'hall';
+      saveSettings(settings);
+      applySettings(settings);
+      applyTheme();
+    });
+    return el('label', { className: 'mixer-row' }, [el('span', { text: 'Theme' }), sel]);
+  };
   const settingsPanel = el('details', { className: 'desk-menu mixer settings' }, [
     el('summary', { className: 'btn btn--menu', text: 'Settings' }),
     el('div', { className: 'desk-panel desk-column' }, [
     check('Reduce motion', 'reducedMotion'),
     check('Steady torches (no flicker)', 'noFlicker'),
     check('Colour-blind safe bars', 'safeColours'),
+    themeSelect(),
     select('Text size', 'textScale', [
       [100, '100%'],
       [125, '125%'],
@@ -537,6 +566,7 @@ function main(): void {
     const elapsed = (now - last) / 1000;
     last = now;
     const f0 = performance.now();
+    applyTheme();
     if (editing) {
       fitBoard(editorPanel.grid.w, editorPanel.grid.h);
       const preview = { ...state, grid: editorPanel.grid, entities: [], drops: [], traps: [], boulders: [], rubble: [], corpses: [], hunt: false };

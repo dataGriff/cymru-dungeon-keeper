@@ -164,9 +164,6 @@ export const board = {
   light: {
     /** The hall's own dark: low enough to hide, high enough that undug rock still reads. */
     ambient: '#463958',
-    ambientHunt: '#46546e',
-    /** Every torch burns this colour once the Hunt is home. */
-    hunt: '#e6f0ff',
     heart: '#ff4646',
     portal: '#aa6eff',
     gate: '#d2dcff',
@@ -196,20 +193,26 @@ export const board = {
   },
 } as const;
 
+// ---------------------------------------------------------------- fades
+
+/** Opacities that dim text: older log lines, unseen manual tabs. Text pairs check them. */
+export const fade = { log: 0.7, logRecent: 0.85, unseen: 0.9 } as const;
+
 // ---------------------------------------------------------------- pairs that must stay legible
 
 /**
  * Text and the ground it sits on, as the stylesheets pair them. Every theme
  * is checked (src/design/a11y.test.ts): `min` is the WCAG ratio, 7 for body
- * text and 4.5 for secondary text; `opacity` is the text's own opacity where
- * the stylesheet fades it. Add a pair when a stylesheet puts text on a new
+ * text and 4.5 for secondary text; `opacity` is the fade token the stylesheet
+ * dims it with. Add a pair when a stylesheet puts text on a new
  * ground.
  */
 export interface TextPair {
   fg: UiColor;
   bg: UiColor;
   min: 7 | 4.5;
-  opacity?: number;
+  /** The stylesheet fades this text with var(--fade-<name>). */
+  fade?: keyof typeof fade;
   use: string;
 }
 
@@ -218,7 +221,8 @@ export const textPairs: readonly TextPair[] = [
   { fg: 'text', bg: 'surface', min: 7, use: 'HUD, the latest log line, overlay titles, levels' },
   { fg: 'textDim', bg: 'surface', min: 4.5, use: 'log, overlay body, menus, settings' },
   { fg: 'textDim', bg: 'surfaceHigh', min: 4.5, use: 'button labels on the raised gradient' },
-  { fg: 'textDim', bg: 'surface', min: 4.5, opacity: 0.7, use: 'the oldest log line' },
+  { fg: 'textDim', bg: 'surface', min: 4.5, fade: 'log', use: 'the oldest log line' },
+  { fg: 'textDim', bg: 'surface', min: 4.5, fade: 'logRecent', use: 'the log line before the latest' },
   { fg: 'textDim', bg: 'bg', min: 4.5, use: 'the strap line, the title rows' },
   { fg: 'textFaint', bg: 'bg', min: 4.5, use: 'tool group names' },
   { fg: 'textFaint', bg: 'surfaceHigh', min: 4.5, use: 'key hints, a cost you cannot pay' },
@@ -231,7 +235,7 @@ export const textPairs: readonly TextPair[] = [
   { fg: 'ink', bg: 'parchmentDark', min: 7, use: "the manual, at the page's dark corner" },
   { fg: 'inkSoft', bg: 'parchment', min: 4.5, use: 'glosses, headers, tabs, footnotes' },
   { fg: 'inkSoft', bg: 'parchmentDark', min: 4.5, use: 'the same, at the dark corner' },
-  { fg: 'inkSoft', bg: 'parchment', min: 4.5, opacity: 0.9, use: 'a tab for a page not yet seen' },
+  { fg: 'inkSoft', bg: 'parchment', min: 4.5, fade: 'unseen', use: 'a tab for a page not yet seen' },
   { fg: 'parchment', bg: 'ink', min: 7, use: 'the open tab, the trade buttons' },
   { fg: 'dosText', bg: 'dosBlue', min: 7, use: 'the installer' },
 ];
