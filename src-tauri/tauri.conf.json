@@ -1,0 +1,46 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Steward of Annwn",
+  "version": "0.1.0",
+  "identifier": "com.hungovercoders.annwn",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Steward of Annwn",
+        "width": 1120,
+        "height": 860,
+        "minWidth": 900,
+        "minHeight": 700,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "category": "Game",
+    "shortDescription": "Keep Arawn's hall while he rides with the Hunt.",
+    "longDescription": "A Dungeon Keeper-style hall in Welsh myth. Dig, build, feed what comes through the portal, and keep the Heart beating until the third wave is bones.",
+    "macOS": { "signingIdentity": null },
+    "windows": { "certificateThumbprint": null }
+  }
+}

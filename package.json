@@ -1,0 +1,35 @@
+{
+  "name": "steward-of-annwn",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A Dungeon Keeper-style proof of concept set in Welsh myth. Keep Arawn's hall while he is away on the Hunt.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint . && npm run typecheck",
+    "check": "npm run lint && npm run test && npm run bench && npm run build",
+    "bench": "vitest run --config vitest.bench.config.ts",
+    "sprites": "node scripts/build-sprites.mjs",
+    "box": "node --experimental-strip-types scripts/build-box.mjs",
+    "manual": "node --experimental-strip-types scripts/build-manual.mjs",
+    "release": "node scripts/release.mjs",
+    "tokens": "node --experimental-strip-types scripts/build-tokens.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.56.1",
+    "@types/node": "^22.20.5",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^10.0.0",
+    "globals": "^17.0.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.72.0",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}

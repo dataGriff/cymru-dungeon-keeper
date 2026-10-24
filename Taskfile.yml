@@ -1,0 +1,114 @@
+# https://taskfile.dev — run `task --list`
+version: '3'
+
+tasks:
+  install:
+    desc: Install dependencies
+    cmds:
+      - npm ci
+    sources: [package.json, package-lock.json]
+    generates: [node_modules/.package-lock.json]
+
+  dev:
+    desc: Serve the game with hot reload
+    deps: [install]
+    cmds:
+      - npm run dev
+
+  build:
+    desc: Build the static site into dist/
+    deps: [install]
+    cmds:
+      - npm run build
+
+  test:
+    desc: Run the sim unit tests (Vitest)
+    deps: [install]
+    cmds:
+      - npm run test
+
+  visual:
+    desc: Screenshot the built game (?still) and the style guide, and compare with tests/visual baselines
+    deps: [build]
+    cmds:
+      - npx playwright test
+
+  visual:update:
+    desc: Accept the current look as the new visual baselines (commit them with the change)
+    deps: [build]
+    cmds:
+      - npx playwright test --update-snapshots
+
+  tokens:
+    desc: Regenerate src/styles/tokens.css from src/design/tokens.ts
+    cmds:
+      - npm run tokens
+    sources: [src/design/tokens.ts, src/design/themes.ts, src/design/css.ts, src/design/fonts.ts]
+    generates: [src/styles/tokens.css]
+
+  sprites:
+    desc: Render art/figures.json into public/sprites.png
+    cmds:
+      - node scripts/build-sprites.mjs
+    sources: [art/figures.json, scripts/build-sprites.mjs]
+    generates: [public/sprites.png, public/sprites.json]
+
+  box:
+    desc: Render the box front, back, spine, 3D mock (docs/box) and public/box-front.svg
+    cmds:
+      - npm run box
+
+  manual:
+    desc: Build dist/manual.pdf and dist/reference-card.pdf from the game data
+    cmds:
+      - npm run manual
+    sources: [src/data/*.ts, art/figures.json, scripts/build-manual.mjs]
+    generates: [dist/manual.pdf, dist/reference-card.pdf]
+
+  desktop:
+    desc: Build desktop bundles for the current platform with Tauri (see docs/desktop.md)
+    cmds:
+      - npm run build
+      - |
+        if cargo tauri --version >/dev/null 2>&1; then
+          cargo tauri build
+        else
+          echo 'tauri-cli is not installed. Run: cargo install tauri-cli --version "^2"'
+          exit 1
+        fi
+
+  desktop:dev:
+    desc: Run the desktop app against the Vite dev server
+    cmds:
+      - |
+        if cargo tauri --version >/dev/null 2>&1; then
+          cargo tauri dev
+        else
+          echo 'tauri-cli is not installed. Run: cargo install tauri-cli --version "^2"'
+          exit 1
+        fi
+
+  release:
+    desc: Build, zip and upload the web build and downloads to itch.io via butler
+    cmds:
+      - node scripts/release.mjs
+
+  bench:
+    desc: Performance budgets (pathfinding) without coverage instrumentation
+    deps: [install]
+    cmds:
+      - npm run bench
+
+  lint:
+    desc: ESLint + strict TypeScript typecheck
+    deps: [install]
+    cmds:
+      - npm run lint
+
+  check:
+    desc: lint + test + build
+    cmds:
+      - task: lint
+      - task: test
+      - task: bench
+      - task: build

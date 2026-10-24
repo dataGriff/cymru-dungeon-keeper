@@ -1,0 +1,34 @@
+/* Last word: state and accessibility helpers that must win over any component. */
+
+@layer utilities {
+  .hidden {
+    display: none !important;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* Reduced motion: the media query and the setting (data-reduced-motion) do the same. */
+  @media (prefers-reduced-motion: reduce) {
+    .manual-turn,
+    .title-press,
+    .hud-danger .hud-bar-fill {
+      animation: none;
+    }
+    .title {
+      transition: none;
+    }
+  }
+  :root[data-reduced-motion='true'] :is(.manual-turn, .title-press, .hud-danger .hud-bar-fill) {
+    animation: none;
+  }
+  :root[data-reduced-motion='true'] .title {
+    transition: none;
+  }
+}

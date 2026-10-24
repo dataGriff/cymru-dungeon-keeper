@@ -1,0 +1,140 @@
+/* The page: two columns, the board with its frame, the strips beneath it. */
+
+@layer layout {
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--w-manual-column);
+    gap: var(--sp-9);
+    max-width: var(--w-layout);
+    margin: 0 auto;
+    padding: 18px var(--sp-7) 40px;
+  }
+
+  @media (max-width: 1040px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  /* On a phone, give the board the room for one device pixel per art pixel (336 + frame). */
+  @media (max-width: 400px) {
+    .layout {
+      padding-inline: var(--sp-4);
+    }
+  }
+
+  .toolbar,
+  .log,
+  .desk,
+  .editor,
+  .board-wrap {
+    max-width: var(--w-board-column);
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    margin: 0 0 var(--sp-4);
+  }
+  .masthead h1 {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-6);
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: var(--fs-display);
+    letter-spacing: var(--tr-display);
+    color: var(--text);
+    text-shadow: 0 0 18px rgb(var(--accent-rgb) / 0.35);
+  }
+  .masthead h1 .pixel-icon {
+    filter: drop-shadow(0 0 8px rgb(var(--heart-bright-rgb) / 0.45));
+  }
+  .masthead .strap {
+    margin: var(--sp-1) 0 0;
+    padding-left: 36px;
+    font-style: italic;
+    color: var(--text-dim);
+  }
+
+  /* ---------- the board's frame ---------- */
+  .board-wrap {
+    position: relative;
+    /* Hugs the canvas, which main.ts sizes to whole device pixels per art pixel. */
+    width: fit-content;
+    padding: var(--sp-3);
+    /* Integer scaling: the board may overflow its column and scroll sideways. */
+    overflow-x: auto;
+    background: linear-gradient(135deg, var(--frame-high) 0%, var(--frame-mid) 30%, var(--frame-low) 60%, var(--frame-edge) 100%);
+    box-shadow:
+      0 0 0 1px var(--line-deep),
+      inset 0 0 0 1px rgb(var(--sheen-rgb) / 0.06),
+      inset 0 0 0 5px var(--frame-inset),
+      var(--shadow-deep),
+      0 0 50px rgb(var(--accent-rgb) / 0.07);
+  }
+  /* Two rivets, one gold. */
+  .board-wrap::before,
+  .board-wrap::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    width: 12px;
+    height: 12px;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--gold), var(--gold)) center / 4px 4px no-repeat,
+      linear-gradient(var(--frame-high), var(--frame-high)) center / 8px 8px no-repeat;
+  }
+  .board-wrap::before {
+    top: -3px;
+    left: -3px;
+  }
+  .board-wrap::after {
+    right: -3px;
+    bottom: -3px;
+  }
+  @media (max-width: 400px) {
+    .board-wrap {
+      padding: var(--sp-1);
+    }
+  }
+
+  canvas.board {
+    display: block;
+    max-width: none;
+    height: auto;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    cursor: crosshair;
+    touch-action: none;
+    box-shadow: 0 0 0 1px var(--line-deep);
+  }
+  canvas.board:focus-visible {
+    outline: 1px solid rgb(var(--accent-rgb) / 0.45);
+    outline-offset: -1px;
+  }
+
+  /* ---------- strips under the board ---------- */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--sp-4) var(--sp-5);
+    margin: var(--sp-6) 0 var(--sp-4);
+  }
+  .toolbar-gap {
+    flex: 1;
+  }
+
+  .desk {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--sp-3);
+    margin-top: var(--sp-4);
+  }
+
+  .manual {
+    align-self: start;
+  }
+}

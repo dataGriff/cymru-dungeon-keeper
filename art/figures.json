@@ -1,0 +1,261 @@
+{
+ "$comment": "Source for public/sprites.png and every portrait. Each figure is 16x16 pixel rows facing right, feet on the bottom row; \".\" is transparent and every other character is a key into that figure's palette. An outline in the outline colour is added around every figure at bake time. Frames (idle, walk x4, attack, sleep, eat, dead) are derived by scripts/build-sprites.mjs. Edit the rows and run `task sprites`.",
+ "width": 16,
+ "height": 16,
+ "outline": "#0b0a12",
+ "frames": ["idle", "walk1", "walk2", "walk3", "walk4", "attack", "sleep", "eat", "dead"],
+ "figures": {
+  "coblyn": {
+   "palette": {"y": "#ffd36a", "c": "#efe2bf", "h": "#4a2e1e", "H": "#6e4a32", "s": "#cf9a6e", "S": "#9c6a48", "e": "#0b0a12", "b": "#9a8a78", "B": "#6f6252", "t": "#7a5236", "T": "#56391f", "a": "#2e2116", "l": "#3b2a20", "p": "#aab2bc", "P": "#6b7380", "w": "#8a5e36"},
+   "rows": [
+    "................",
+    "......y.........",
+    "......c...PPPP..",
+    ".....hHHh..p..w.",
+    "....hhhhhhh..w..",
+    ".....SsssS..w...",
+    ".....Ssses.w....",
+    "....bBbbbbbw....",
+    "....bbbbbbsw....",
+    "...ttbbbbtt.....",
+    "..sTttbbtttT....",
+    "..s.aaaaaaa.....",
+    "....ttt.ttt.....",
+    "....TTt.TTt.....",
+    "....ll...ll.....",
+    "...lll..lll....."
+   ]
+  },
+  "cwn": {
+   "palette": {"W": "#f6f2e8", "w": "#d2ccc0", "g": "#a8a296", "r": "#d8303a", "R": "#ff6a6a", "e": "#0b0a12", "n": "#2a1a1a", "m": "#8a1f24"},
+   "rows": [
+    "................",
+    "................",
+    "................",
+    "...........r.r..",
+    "...........rRrR.",
+    "..W........WWWW.",
+    "..WW......WWWeWW",
+    "...WW....WWWWWWn",
+    "....WWWWWWWWWwm.",
+    "...WWWWWWWWWWw..",
+    "...wWWWWWWWWw...",
+    "...wwWWwwwWWw...",
+    "...gW.g...Wg.W..",
+    "...gW.g...Wg.W..",
+    "..gW..g..W.g.W..",
+    "..gw..gg.ww.gww."
+   ]
+  },
+  "pwca": {
+   "palette": {"k": "#15121d", "K": "#3a3150", "y": "#ffe34a", "Y": "#fff7c0"},
+   "rows": [
+    "................",
+    ".....KKKK.......",
+    "....KkkkkK......",
+    "....kkkYkY......",
+    "....kkkykyk.....",
+    ".....kkkkk......",
+    "......kkk.......",
+    "....KkkkkkK.....",
+    "...Kk.kkk.kK....",
+    "..Kk..kkk..kK...",
+    "..k...kkk...k...",
+    ".k....KkK....k..",
+    "k.k...k.k...k.k.",
+    "......k.k.......",
+    ".....kk.k.......",
+    "....kk..kk......"
+   ]
+  },
+  "afanc": {
+   "palette": {"G": "#4b8a42", "g": "#2c5428", "L": "#8ab872", "l": "#6a9e5a", "t": "#5a3a1e", "T": "#8a6038", "e": "#ffe34a", "w": "#f7f2e4", "k": "#1a1410", "m": "#5a1a1e", "S": "#2f6a2e"},
+   "rows": [
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    ".....gSg.gSg..g.",
+    "....gGGGgGGGggeg",
+    "...gGGGGGGGGGGGG",
+    "tTtgGGGGGGGGGwGw",
+    "TtTGGGGGGGGGmmmm",
+    "tTtGGGGGGGGGGwGw",
+    "TtTgGGGGGGGGGGg.",
+    ".t.gLLLLLLLLLg..",
+    "...glLLLLLLLlg..",
+    "...gg.gg..gg.gg.",
+    "..kkk.kk..kk.kkk"
+   ]
+  },
+  "gwyllgi": {
+   "palette": {"k": "#1c1a24", "K": "#3d3849", "o": "#ff7a1f", "O": "#ffd08a", "r": "#8a1f24", "w": "#cfc8bc"},
+   "rows": [
+    "................",
+    "................",
+    "..........k..k..",
+    "..........kKkk..",
+    ".k.......kkkkkk.",
+    "kK......KkkkOokk",
+    "kk.KKKKKkkkkkkkk",
+    ".kkkkkkkkkkkkwrk",
+    ".kkkkkkkkkkkkkk.",
+    ".kkkkkkkkkkkk...",
+    "..kkkkkkkkkkk...",
+    "..kkK.kkk.kKk...",
+    "..kk..kk..kk.k..",
+    "..kk..kk..kk.k..",
+    "..kk..kk..kk.k..",
+    ".kkk.kkk.kkk.kk."
+   ]
+  },
+  "ceffyl": {
+   "palette": {"b": "#93acbe", "B": "#b8cddb", "d": "#647b8c", "m": "#e4eef4", "M": "#a9c8d8", "e": "#0b0a12", "h": "#33414e", "w": "#6fb3c8"},
+   "rows": [
+    "..........m.....",
+    ".........mmb....",
+    "........mMbbb...",
+    "........mbbbbb..",
+    "........Mbbebbb.",
+    "........mbbbbbbd",
+    ".......mbbbb.dd.",
+    ".M....mbbbb.....",
+    "MM.BBBBbbbb.....",
+    "M.Bbbbbbbbbb....",
+    "..bbbbbbbbbb....",
+    "..dbbbbbbbbd....",
+    "..d.d....b.d....",
+    "..d.d....b.d.w..",
+    "..d.d.w..b.d....",
+    ".hh.hh..hh.hh..."
+   ]
+  },
+  "teg": {
+   "palette": {"y": "#e2c25e", "Y": "#fff0a8", "h": "#e6d8a0", "f": "#efe9d8", "F": "#cfc7b0", "e": "#3f8a5e", "G": "#4f8a63", "g": "#356046", "b": "#7a5230", "l": "#9fe07a"},
+   "rows": [
+    ".....y.Y.y......",
+    ".....yyyyy......",
+    "....hhffffh.....",
+    "....hfffefh.....",
+    "....hFffffh.....",
+    ".....hFff.......",
+    "....GGgggGG..l..",
+    "...GGgGGGgGG.bl.",
+    "...GgGGGGGgG.b..",
+    "...fGGGyGGGfb...",
+    "....GGGyGGG.b...",
+    "....GgGyGgG.b...",
+    "....GGGyGGG.b...",
+    "...GGgGGGgGG.b..",
+    "...yGGGGGGGy....",
+    "...yyyyyyyyy...."
+   ]
+  },
+  "knight": {
+   "palette": {"S": "#b4bac2", "U": "#e2e6ea", "s": "#6f757e", "k": "#0b0a12", "r": "#d8232a", "R": "#ff6a5a", "B": "#6b543c", "x": "#d8232a", "i": "#e6ebf0", "h": "#9a7444", "T": "#8a1f24", "f": "#3a3a44"},
+   "rows": [
+    ".......r........",
+    "......rRr.......",
+    "......rUSS...i..",
+    ".....SUSSSs..i..",
+    ".....SkkkkS..i..",
+    ".....sSSSSs..i..",
+    "..BBBsUSSSSsSi..",
+    ".BxxBUSSSSSShh..",
+    ".BxxBsSSSSSs.h..",
+    ".BBxBsSSSSSs....",
+    ".BBBBTTTTTTT....",
+    "..BBsSSSSSSs....",
+    "....sSS..SSs....",
+    "....sSS..SSs....",
+    "....SSS..SSS....",
+    "...ffff.ffff...."
+   ]
+  },
+  "lord": {
+   "palette": {"y": "#e2c25e", "S": "#cfd3da", "U": "#f0f2f5", "s": "#7a808a", "k": "#0b0a12", "B": "#2f4f9a", "b": "#1f3570", "c": "#7a1f2a", "C": "#4f1420", "i": "#e6ebf0", "h": "#9a7444", "f": "#3a3a44"},
+   "rows": [
+    ".....y.y.y......",
+    ".....yyyyy......",
+    ".....SUSSS......",
+    "....SUkkkSs.....",
+    "....SSSSSSs.....",
+    "..cc.sSSSs...i..",
+    ".ccBBBBBBBBS.i..",
+    ".cBBByyBBBBSsi..",
+    ".cBBByyBBbBSshh.",
+    ".cBBBBBBBbBs.h..",
+    ".CcbbbbbbbBs....",
+    "..CSSSSSSSSs....",
+    "..CSUS..SUSs....",
+    "...SSS..SSS.....",
+    "...sSS..sSS.....",
+    "..ffff.ffff....."
+   ]
+  },
+  "levy": {
+   "palette": {"c": "#5e4e3c", "C": "#7a6650", "s": "#d6ab7e", "S": "#a77c55", "r": "#e86a5a", "e": "#0b0a12", "T": "#8f704e", "t": "#6a5238", "y": "#3e2e1e", "L": "#5e5444", "l": "#3b2a20", "w": "#7a5230", "i": "#aab2bc", "I": "#6b7380"},
+   "rows": [
+    ".............ii.",
+    "............I.i.",
+    ".....cccc....w..",
+    "....cCCCcc..w...",
+    "....Sssss...w...",
+    "....Ssesr..w....",
+    ".....sss..w.....",
+    "....TTTTTsw.....",
+    "...TTtTTTTw.....",
+    "...sTtTTTT......",
+    "....TtTTTT......",
+    "....yyyyyy......",
+    "....LLLLLL......",
+    "....LL..LL......",
+    "....ll..ll......",
+    "...lll.lll......"
+   ]
+  },
+  "relic": {
+   "palette": {"P": "#76638a", "p": "#4f4060", "Q": "#9682aa", "s": "#d6ab7e", "S": "#a77c55", "h": "#3a2a20", "k": "#5a3a2a", "X": "#dfe4ec", "x": "#9aa2b0", "g": "#e2c25e", "y": "#3e2e1e"},
+   "rows": [
+    "................",
+    ".....hhhh.......",
+    "....hSsssh......",
+    "....Sssksk......",
+    "....Sssss.......",
+    ".....sss........",
+    "....QPPPPP......",
+    "...QPPPPPPssXXX.",
+    "...QPPPPPPxXXgXX",
+    "...QPPPPPPxXgggX",
+    "...QPPPPPPxXXgXX",
+    "...yyyyyyy.xxxx.",
+    "...QPPPPPP......",
+    "..QPPpPPpPP.....",
+    "..pPPPPPPPPp....",
+    "...ss...ss......"
+   ]
+  },
+  "priest": {
+   "palette": {"R": "#97835c", "r": "#6b5b40", "Q": "#b39e74", "y": "#4e3e26", "s": "#d6ab7e", "S": "#a77c55", "h": "#4b3425", "b": "#c4bdb0", "e": "#0b0a12", "w": "#7a5230", "n": "#a8aeb8"},
+   "rows": [
+    "............w...",
+    ".....hhh...nw...",
+    "....hssss...wn..",
+    "....Sssesh.nw...",
+    "....Sssss...wn..",
+    ".....bbbb..nw...",
+    "....QRbbRR.sw...",
+    "...QRRRRRRRsw...",
+    "...QRRRRRRr.w...",
+    "...QRRRRRRr.wn..",
+    "...yyyyyyyy.w...",
+    "...QRRRRRRr.w...",
+    "...RRrRRrRr.w...",
+    "..QRRRRRRRRrw...",
+    "..rRRRRRRRRrw...",
+    "...ss....ss.w..."
+   ]
+  }
+ }
+}

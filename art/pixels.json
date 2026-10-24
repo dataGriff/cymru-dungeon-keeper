@@ -1,0 +1,404 @@
+{
+ "$comment": "Every hand-drawn pixel map that is not a creature (creatures are in figures.json): icons, engines, the Heart, tile stamps, glyphs. Rows of palette keys, \".\" transparent, palette values hex. A map may list variants: palette overrides drawn from the same rows. Read by src/render/pixels.ts (the game) and scripts/lib/pixels.mjs (the box and manual builders); validated by src/design/art.test.ts.",
+ "maps": {
+  "icon.hand": {
+   "palette": {"o": "#5e3e26", "h": "#b0835a", "H": "#e6be8e"},
+   "rows": [
+    "...o.o.o....",
+    "..oHoHoHo...",
+    "..oHoHoHoo..",
+    "..oHoHoHoHo.",
+    "oo.HhHhHoHo.",
+    "oHo.HHHHHHo.",
+    "oHHoHHHHHHo.",
+    ".oHHHHHHHHo.",
+    "..oHHHHHHo..",
+    "...oHHHHho..",
+    "....ohhhho..",
+    ".....oooo..."
+   ]
+  },
+  "icon.dig": {
+   "palette": {"p": "#c8ced6", "P": "#6b7380", "w": "#9a6a3a", "W": "#5e3e1e", "o": "#1a1420"},
+   "rows": [
+    "...oooooo...",
+    "..oppppppo..",
+    ".opPooooPpo.",
+    "opPo.ow.oPpo",
+    "oPo..ow..oPo",
+    ".o...ow...o.",
+    ".....ow.....",
+    ".....ow.....",
+    ".....oW.....",
+    ".....oW.....",
+    ".....oW.....",
+    ".....oo....."
+   ]
+  },
+  "icon.lair": {
+   "palette": {"s": "#94743f", "S": "#c09a58", "k": "#3a281c", "o": "#2a1a12"},
+   "rows": [
+    "............",
+    "............",
+    "...s.S..s...",
+    "..sSsssSss..",
+    ".sSoooooSSs.",
+    "sSokkkkkkoSs",
+    "sSokkkkkkoSs",
+    ".sSoooooSSs.",
+    "..sSSsSSss..",
+    "...ssssss...",
+    "............",
+    "............"
+   ]
+  },
+  "icon.hatchery": {
+   "palette": {"o": "#4a4030", "E": "#ece2c4", "e": "#b8a986", "s": "#8f8464", "g": "#465630"},
+   "rows": [
+    "....oooo....",
+    "...oEEEEo...",
+    "..oEEEsEEo..",
+    "..oEEEEEEo..",
+    ".oEsEEEEeEo.",
+    ".oEEEEEsEEo.",
+    ".oEEEEEEEeo.",
+    ".oeEEsEEEeo.",
+    "..oeEEEEeo..",
+    "...oooooo...",
+    ".gg.g..g.gg.",
+    "g.gg.gg.gg.g"
+   ]
+  },
+  "icon.treasury": {
+   "palette": {"o": "#4a3410", "d": "#9a7120", "y": "#e3b341", "Y": "#ffe08a"},
+   "rows": [
+    "....oooo....",
+    "...oYYYYo...",
+    "...odyyyo...",
+    "..ooYYYYoo..",
+    ".oYYodyyoYo.",
+    ".odyoYYYodo.",
+    "ooYYodyyoYYo",
+    "odyyoYYYodyo",
+    "oYYYodyyoYYo",
+    "odyyoYYYodyo",
+    "oddyoddyoddo",
+    ".oooooooooo."
+   ]
+  },
+  "icon.pool": {
+   "palette": {"b": "#6fb3c8", "B": "#c8eef6", "d": "#2a6a80"},
+   "rows": [
+    "............",
+    "..BB....BB..",
+    ".b..b..b..b.",
+    "b....bb....b",
+    "............",
+    "..BB....BB..",
+    ".b..b..b..b.",
+    "b....bb....b",
+    "............",
+    "..dd....dd..",
+    ".d..d..d..d.",
+    "d....dd....d"
+   ]
+  },
+  "icon.pause": {
+   "palette": {"o": "#f1e9d8"},
+   "rows": [
+    "..........",
+    "..oo..oo..",
+    "..oo..oo..",
+    "..oo..oo..",
+    "..oo..oo..",
+    "..oo..oo..",
+    "..oo..oo..",
+    "..oo..oo..",
+    "..oo..oo..",
+    ".........."
+   ]
+  },
+  "icon.play": {
+   "palette": {"o": "#f1e9d8"},
+   "rows": [
+    "..........",
+    "..o.......",
+    "..oo......",
+    "..ooo.....",
+    "..oooo....",
+    "..oooo....",
+    "..ooo.....",
+    "..oo......",
+    "..o.......",
+    ".........."
+   ]
+  },
+  "icon.restart": {
+   "palette": {"o": "#f1e9d8"},
+   "rows": [
+    "...oooo...",
+    "..o....o.o",
+    ".o......oo",
+    ".o.....ooo",
+    ".o........",
+    ".o........",
+    ".o......o.",
+    "..o....o..",
+    "...oooo...",
+    ".........."
+   ]
+  },
+  "icon.horn": {
+   "palette": {"w": "#e8dcc0", "W": "#b8a986", "o": "#5e4428", "g": "#e3b341"},
+   "rows": [
+    "..........",
+    "........oo",
+    ".......owo",
+    "......owwo",
+    "ooo..owwwo",
+    "owgooWwwwo",
+    "owwwWwwwgo",
+    "oowwwwwwo.",
+    "..ooowwo..",
+    ".....oo..."
+   ]
+  },
+  "icon.coin": {
+   "palette": {"o": "#4a3410", "d": "#9a7120", "y": "#e3b341", "Y": "#ffe08a"},
+   "rows": [
+    "..oooo..",
+    ".oYYYYo.",
+    "oYyddyYo",
+    "oYdYYdyo",
+    "oYdYYdyo",
+    "oYyddyyo",
+    ".oyyyyo.",
+    "..oooo.."
+   ]
+  },
+  "icon.wave": {
+   "palette": {"s": "#dfe4ea", "h": "#9a7444"},
+   "rows": [
+    "s......s",
+    ".s....s.",
+    "..s..s..",
+    "...ss...",
+    "...ss...",
+    "..h..h..",
+    ".h....h.",
+    "h......h"
+   ]
+  },
+  "icon.paw": {
+   "palette": {"o": "#f1e9d8"},
+   "rows": [
+    ".o..o...",
+    "oo..oo..",
+    "........",
+    "o.oo..o.",
+    ".oooo...",
+    "oooooo..",
+    ".oooo...",
+    "........"
+   ]
+  },
+  "icon.vault": {
+   "palette": {"o": "#1a1018", "w": "#7a5230", "W": "#9a7044", "y": "#e3b341"},
+   "rows": [
+    ".oooooo.",
+    "oWWWWWWo",
+    "oyyyyyyo",
+    "owwyywwo",
+    "owwyywwo",
+    "owwwwwwo",
+    "oooooooo",
+    "........"
+   ]
+  },
+  "icon.floor": {
+   "palette": {"o": "#4a3410", "d": "#9a7120", "y": "#e3b341", "Y": "#ffe08a"},
+   "rows": [
+    "........",
+    "........",
+    "...oo...",
+    "..oYYo..",
+    ".oYyydo.",
+    "oyyyyddo",
+    "oddddddo",
+    "........"
+   ]
+  },
+  "engine.pit": {
+   "palette": {"e": "#2a2018", "E": "#5a4630", "k": "#07050c", "L": "#8a6a42", "l": "#5e4428"},
+   "rows": [
+    "..............",
+    "...eeeeeeee...",
+    "..eEEEEEEEEe..",
+    ".eEkkkkkkkkEe.",
+    ".eELLLLLLLLEe.",
+    ".eEklkklkkkEe.",
+    ".eEkLkkkLkkEe.",
+    ".eELLLLLLLLEe.",
+    ".eEkkLkklkkEe.",
+    ".eEkklkkLkkEe.",
+    ".eELLLLLLLLEe.",
+    "..eEEEEEEEEe..",
+    "...eeeeeeee...",
+    ".............."
+   ]
+  },
+  "engine.boulder": {
+   "palette": {"o": "#26222c", "O": "#6b6570", "H": "#a49eaa", "s": "#47424f", "w": "#7a5230", "W": "#9a7044"},
+   "rows": [
+    "..............",
+    ".....oooo.....",
+    "...ooOOOOoo...",
+    "..oOHHOOOOOo..",
+    "..oHHOOOOOOo..",
+    ".oOHOOOOOOOOo.",
+    ".oOOOOOOOOOso.",
+    ".oOOOOOOOOsso.",
+    ".oOOOOOOOssso.",
+    "..oOOOOOssso..",
+    "..ossOsssss...",
+    "...oossssoo...",
+    "...wWWWWWw....",
+    ".............."
+   ]
+  },
+  "engine.snare": {
+   "palette": {"I": "#9ea4ad", "i": "#6b7079", "v": "#e8edf3", "p": "#565b64", "c": "#7a808a"},
+   "rows": [
+    "..............",
+    "..IIIIIIIIII..",
+    ".IvivivivivI..",
+    ".I.........I..",
+    ".I...pppp..I..",
+    ".IiiippppiiI..",
+    ".I...pppp..I..",
+    ".I.........I..",
+    ".IvivivivivI..",
+    "..IIIIIIIIII..",
+    ".......c......",
+    "......c.c.....",
+    ".......c......",
+    ".............."
+   ]
+  },
+  "gem.heart": {
+   "note": "The Heart. Board, HUD, masthead and box all draw this one.",
+   "palette": {"r": "#7a0f1a", "R": "#d8202c", "W": "#ffd0d0"},
+   "variants": {"lit": {"R": "#ff3a44"}},
+   "rows": [
+    "..rr.rr..",
+    ".rRRrRRr.",
+    "rRWRRRRRr",
+    "rRRRRRRRr",
+    ".rRRRRRr.",
+    "..rRRRr..",
+    "...rRr...",
+    "....r...."
+   ]
+  },
+  "tile.dais": {
+   "note": "The carved dais the Heart stands on; knot-dots in the rim.",
+   "palette": {"o": "#1a1420", "S": "#4a3e54", "s": "#3a3044", "k": "#241c2c", "n": "#6a5a74"},
+   "rows": [
+    "....oooooo....",
+    "..ooSSnnSSoo..",
+    ".oSSsssssSSSo.",
+    ".oSsskkkksSSo.",
+    "oSSskkkkkksSSo",
+    "oSskkkkkkkksSo",
+    "onskkkkkkkksno",
+    "onskkkkkkkksno",
+    "oSskkkkkkkksSo",
+    "oSSskkkkkksSSo",
+    ".oSsskkkksSSo.",
+    ".oSSsssssSSSo.",
+    "..ooSSnnSSoo..",
+    "....oooooo...."
+   ]
+  },
+  "tile.egg": {
+   "palette": {"E": "#ece2c4", "s": "#8f8464", "e": "#b8a986"},
+   "rows": [
+    ".EE.",
+    "EEEE",
+    "EEsE",
+    "eEEe",
+    ".ee."
+   ]
+  },
+  "pile.gold": {
+   "note": "Loose gold on the floor.",
+   "palette": {"y": "#e3b341", "Y": "#ffe08a", "d": "#9a7120"},
+   "rows": [
+    "..yY..",
+    ".yYyy.",
+    "yyyYyd",
+    "dddddd"
+   ]
+  },
+  "coin.carry": {
+   "note": "Gold in a creature's hands, drawn above its head.",
+   "palette": {"y": "#e3b341", "Y": "#ffe08a", "d": "#9a7120"},
+   "rows": [
+    ".yy.",
+    "yYYy",
+    "dyyd"
+   ]
+  },
+  "glyph.z": {
+   "note": "Asleep, or tired. Recoloured at draw time.",
+   "palette": {"z": "#ffffff"},
+   "rows": [
+    "zzz",
+    "..z",
+    ".z.",
+    "z..",
+    "zzz"
+   ]
+  },
+  "glyph.angry": {
+   "note": "Recoloured at draw time.",
+   "palette": {"r": "#ffffff"},
+   "rows": [
+    ".r.",
+    ".r.",
+    ".r.",
+    "...",
+    ".r."
+   ]
+  },
+  "glyph.afraid": {
+   "note": "Recoloured at draw time.",
+   "palette": {"r": "#ffffff"},
+   "rows": [
+    "rr.",
+    "..r",
+    ".r.",
+    "...",
+    ".r."
+   ]
+  },
+  "glyph.hungry": {
+   "note": "Recoloured at draw time.",
+   "palette": {"r": "#ffffff"},
+   "rows": [
+    "...",
+    "r.r",
+    ".r.",
+    "...",
+    "..."
+   ]
+  },
+  "eyes.pwca": {
+   "note": "Two lamp-yellow eyes in the dark (the box front).",
+   "palette": {"y": "#ffe34a"},
+   "rows": [
+    "y.y"
+   ]
+  }
+ }
+}

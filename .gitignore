@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+.vite/
+.task/
+coverage/
+.claude/worktrees/
+docs/box/box.pdf
+src-tauri/target/
+src-tauri/gen/schemas/
+release/
+docs/box/box.html
+docs/box/front-web.html
+test-results/
+playwright-report/

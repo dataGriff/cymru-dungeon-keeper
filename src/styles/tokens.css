@@ -1,0 +1,266 @@
+/* Generated from src/design/tokens.ts, themes.ts and fonts.ts by `task tokens`. Do not edit by hand. */
+
+@layer tokens, base, layout, components, screens, utilities;
+
+@font-face {
+  font-family: 'Metamorphous';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../art/fonts/metamorphous/metamorphous-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Metamorphous';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../art/fonts/metamorphous/metamorphous-latin-ext-400-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'IM Fell English';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../art/fonts/im-fell-english/im-fell-english-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IM Fell English';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../art/fonts/im-fell-english/im-fell-english-latin-400-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IM Fell English';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../art/fonts/eb-garamond/eb-garamond-welsh-400-normal.woff2') format('woff2');
+  unicode-range: U+0174-0177;
+}
+@font-face {
+  font-family: 'IM Fell English';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../art/fonts/eb-garamond/eb-garamond-welsh-400-italic.woff2') format('woff2');
+  unicode-range: U+0174-0177;
+}
+@font-face {
+  font-family: 'VT323';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../art/fonts/vt323/vt323-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'VT323';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../art/fonts/vt323/vt323-latin-ext-400-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Metamorphous Fallback';
+  src: local('Georgia'), local('Palatino Linotype');
+  size-adjust: 124.67%;
+  ascent-override: 77.24%;
+  descent-override: 23.03%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'IM Fell English Fallback';
+  src: local('Georgia'), local('Palatino Linotype');
+  size-adjust: 91.12%;
+  ascent-override: 99.35%;
+  descent-override: 39.87%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'VT323 Fallback';
+  src: local('Courier New'), local('Courier');
+  size-adjust: 66.66%;
+  ascent-override: 120.02%;
+  descent-override: 30%;
+  line-gap-override: 0%;
+}
+
+@layer tokens {
+:root {
+  color-scheme: dark;
+  --bg: #0b0812;
+  --bg-rgb: 11 8 18;
+  --bg-glow-cool: #1a1326;
+  --bg-glow-cool-rgb: 26 19 38;
+  --bg-glow-warm: #1b0f12;
+  --bg-glow-warm-rgb: 27 15 18;
+  --surface: #120d1c;
+  --surface-rgb: 18 13 28;
+  --surface-low: #140f1d;
+  --surface-low-rgb: 20 15 29;
+  --surface-high: #1d1528;
+  --surface-high-rgb: 29 21 40;
+  --surface-active: #2a1a22;
+  --surface-active-rgb: 42 26 34;
+  --surface-active-low: #1c1220;
+  --surface-active-low-rgb: 28 18 32;
+  --well: #000000;
+  --well-rgb: 0 0 0;
+  --sheen: #ffffff;
+  --sheen-rgb: 255 255 255;
+  --line: #2a2036;
+  --line-rgb: 42 32 54;
+  --line-faint: #221a2e;
+  --line-faint-rgb: 34 26 46;
+  --line-control: #2f2440;
+  --line-control-rgb: 47 36 64;
+  --line-strong: #3a2f4a;
+  --line-strong-rgb: 58 47 74;
+  --line-deep: #05030a;
+  --line-deep-rgb: 5 3 10;
+  --text: #f1e9d8;
+  --text-rgb: 241 233 216;
+  --text-dim: #bcb3a3;
+  --text-dim-rgb: 188 179 163;
+  --text-faint: #968aa2;
+  --text-faint-rgb: 150 138 162;
+  --text-disabled: #6e6378;
+  --text-disabled-rgb: 110 99 120;
+  --accent: #ff7a1f;
+  --accent-rgb: 255 122 31;
+  --accent-dim: #a04a12;
+  --accent-dim-rgb: 160 74 18;
+  --danger: #ff5a50;
+  --danger-rgb: 255 90 80;
+  --danger-deep: #6a1a22;
+  --danger-deep-rgb: 106 26 34;
+  --danger-well: #2a0c12;
+  --danger-well-rgb: 42 12 18;
+  --heart: #b4202c;
+  --heart-rgb: 180 32 44;
+  --heart-bright: #ff4a4a;
+  --heart-bright-rgb: 255 74 74;
+  --gold: #e3b341;
+  --gold-rgb: 227 179 65;
+  --frame-high: #5a4870;
+  --frame-high-rgb: 90 72 112;
+  --frame-mid: #2a2036;
+  --frame-mid-rgb: 42 32 54;
+  --frame-low: #1d1626;
+  --frame-low-rgb: 29 22 38;
+  --frame-edge: #3a2f48;
+  --frame-edge-rgb: 58 47 72;
+  --frame-inset: #120d1a;
+  --frame-inset-rgb: 18 13 26;
+  --paper: #fffaeb;
+  --paper-rgb: 255 250 235;
+  --parchment: #e9dcc0;
+  --parchment-rgb: 233 220 192;
+  --parchment-light: #efe3c8;
+  --parchment-light-rgb: 239 227 200;
+  --parchment-dark: #cdbb95;
+  --parchment-dark-rgb: 205 187 149;
+  --ink: #2b2118;
+  --ink-rgb: 43 33 24;
+  --ink-soft: #5a4632;
+  --ink-soft-rgb: 90 70 50;
+  --ink-rule: #3c2814;
+  --ink-rule-rgb: 60 40 20;
+  --paper-shadow: #5a3c19;
+  --paper-shadow-rgb: 90 60 25;
+  --dos-blue: #0000aa;
+  --dos-blue-rgb: 0 0 170;
+  --dos-text: #e8e8e8;
+  --dos-text-rgb: 232 232 232;
+  --font-display: 'Metamorphous', 'Metamorphous Fallback', 'Palatino Linotype', Georgia, serif;
+  --font-body: 'IM Fell English', 'IM Fell English Fallback', 'Palatino Linotype', Georgia, serif;
+  --font-hud: 'VT323', 'VT323 Fallback', 'Courier New', monospace;
+  --fs-micro: 10px;
+  --fs-caption: 12px;
+  --fs-hud-small: 15px;
+  --fs-small: 15px;
+  --fs-body: 17px;
+  --fs-hud: 18px;
+  --fs-hud-large: 22px;
+  --fs-title-small: 20px;
+  --fs-title: 26px;
+  --fs-display: 30px;
+  --lh-tight: 1;
+  --lh-snug: 1.15;
+  --lh-body: 1.4;
+  --tr-label: 0.22em;
+  --tr-caps: 0.1em;
+  --tr-display: 0.04em;
+  --sp-1: 2px;
+  --sp-2: 4px;
+  --sp-3: 6px;
+  --sp-4: 8px;
+  --sp-5: 10px;
+  --sp-6: 12px;
+  --sp-7: 16px;
+  --sp-8: 20px;
+  --sp-9: 24px;
+  --w-board-column: 684px;
+  --w-manual-column: 380px;
+  --w-layout: 1140px;
+  --w-control: 36px;
+  --w-portrait: 112px;
+  --z-board: 0;
+  --z-tooltip: 2;
+  --z-profiler: 3;
+  --z-menu: 5;
+  --z-title: 10;
+  --dur-fast: 100ms;
+  --dur-base: 200ms;
+  --dur-slow: 350ms;
+  --dur-page: 420ms;
+  --shadow-card: 0 12px 30px #00000099;
+  --shadow-deep: 0 18px 50px #000000b3;
+  --fade-log: 0.7;
+  --fade-log-recent: 0.85;
+  --fade-unseen: 0.9;
+}
+
+:root[data-theme='contrast'] {
+  --text-dim: #ece4d4;
+  --text-dim-rgb: 236 228 212;
+  --text-faint: #ddd3e6;
+  --text-faint-rgb: 221 211 230;
+  --accent: #ffa45c;
+  --accent-rgb: 255 164 92;
+  --accent-dim: #e07a2a;
+  --accent-dim-rgb: 224 122 42;
+  --danger: #ff9a90;
+  --danger-rgb: 255 154 144;
+  --line: #5a4c70;
+  --line-rgb: 90 76 112;
+  --line-faint: #4a3e5e;
+  --line-faint-rgb: 74 62 94;
+  --line-control: #8a78a6;
+  --line-control-rgb: 138 120 166;
+  --line-strong: #a090bc;
+  --line-strong-rgb: 160 144 188;
+  --ink-soft: #3a2a1a;
+  --ink-soft-rgb: 58 42 26;
+  --fade-log: 1;
+  --fade-log-recent: 1;
+  --fade-unseen: 1;
+}
+
+:root[data-theme='hunt'] {
+  --bg-glow-warm: #0c1322;
+  --bg-glow-warm-rgb: 12 19 34;
+  --accent: #9ecbff;
+  --accent-rgb: 158 203 255;
+  --accent-dim: #4a6a9a;
+  --accent-dim-rgb: 74 106 154;
+  --surface-active: #1a2234;
+  --surface-active-rgb: 26 34 52;
+  --surface-active-low: #141a28;
+  --surface-active-low-rgb: 20 26 40;
+}
+}
